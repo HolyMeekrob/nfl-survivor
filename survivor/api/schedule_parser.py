@@ -1,5 +1,5 @@
 from datetime import datetime, timezone, timedelta
-from game import Game
+from .game import Game
 from enum import Enum, auto
 from html.parser import HTMLParser
 import re
@@ -87,7 +87,9 @@ class SubParser:
 class NoneParser(SubParser):
     def handle_starttag(self, root, tag, attrs):
         if tag == "div" and has_class(attrs, "single-score-card"):
-            root.games.append(Game())
+            game = Game()
+            game.is_complete = has_class(attrs, "postgame")
+            root.games.append(game)
             return ProcessMode.GAME
 
         return None
@@ -128,7 +130,8 @@ class GameParser(SubParser):
 
 
 class DateParser(SubParser):
-    def get_day(self, day_of_week):
+    @staticmethod
+    def _get_day(day_of_week):
         now = datetime.now()
 
         delta = 0
@@ -145,37 +148,40 @@ class DateParser(SubParser):
         return tag == "span"
 
     def handle_data(self, root, data):
-        dayGroup = "|".join(days)
-        monthGroup = "|".join(months)
+        day_group = "|".join(days)
+        month_group = "|".join(months)
         regex = re.compile(
-            rf"(?:(?P<day_of_week>{dayGroup}) )?(?:(?P<month>{monthGroup}) )?(?:(?P<day>\d{{1,2}}), )?(?P<hour>\d{{1,2}}):(?P<minutes>\d{{2}})(?P<time_of_day>am|pm)"
+            rf"(?:(?P<day_of_week>{day_group}) )?(?:(?P<month>{month_group}) )?(?:(?P<day>\d{{1,2}}), )?(?P<hour>\d{{1,2}}):(?P<minutes>\d{{2}})(?P<time_of_day>am|pm)"
         )
         match = regex.match(data.strip())
 
         # TODO: get year
         year = 2021
-        easternTime = timezone(timedelta(hours=-5))
+        eastern = timezone(timedelta(hours=-5))
 
         # Possible formats for games that have not started:
         # DOW MON DAY, HOUR:MINUTESam|pm (SUN JAN 9, 12:00pm) - Future week
         # DOW HOUR:MINUTESam|pm (SUN 12:00pm) - This week but not today
         # HOUR:MINUTESam|pm (12:00pm) - Today
-        monthStr = match.group("month")
-        dayStr = match.group("day")
+        month_str = match.group("month")
+        day_str = match.group("day")
+        time_of_day = match.group("time_of_day")
+        hours_to_add = 0 if time_of_day == "am" else 12
+
         (month, day) = (
             (months.index(match.group("month")) + 1, int(match.group("day")))
-            if monthStr != None and dayStr != None
-            else self.get_day(match.group("day_of_week"))
+            if month_str != None and day_str != None
+            else self._get_day(match.group("day_of_week"))
         )
 
         date = datetime(
             year,
             month,
             day,
-            int(match.group("hour")),
+            (int(match.group("hour")) + hours_to_add) % 24,
             int(match.group("minutes")),
-            tzinfo=easternTime,
-        )
+            tzinfo=eastern,
+        ).astimezone(timezone.utc)
         root.games[-1].date = date
 
 

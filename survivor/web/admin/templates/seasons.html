@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block title %}Seasons Admin{% endblock %}
+{% block header %}Seasons administration{% endblock %}
+
+{% block content %}
+	<div>
+		<h2>Seasons</h2>
+		{% if not seasons %}
+			<div>No seasons have been created</div>
+		{% else %}
+			{% for season in seasons %}
+				<div><a href={{ url_for("admin.season", id=season.id) }}>{{season.year}}</a></div>
+			{% endfor %}
+		{% endif %}
+	</div>
+
+	<form method="post" action="season">
+		<button type="submit">Create new season</button>
+	</div>
+{% endblock %}

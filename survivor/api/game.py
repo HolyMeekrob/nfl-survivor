@@ -6,6 +6,7 @@ class Game:
         self.away_score = None
         self.home_score = None
         self.odds = None
+        self.is_complete = None
 
     def __str__(self):
         if self.away_score != None and self.home_score != None:
