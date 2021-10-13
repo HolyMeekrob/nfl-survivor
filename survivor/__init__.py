@@ -1,9 +1,11 @@
 import os
 
 from flask import Flask
+from flask_login import LoginManager
 
-from .data import db
-from .web import admin
+from .data import db, User
+from .services import user as user_service
+from .web import admin, auth, home
 
 
 def create_app(test_config=None):
@@ -35,7 +37,34 @@ def create_app(test_config=None):
     # initialize the database
     db.init(app)
 
+    # initialize login manager
+    login_manager = LoginManager()
+    login_manager.init_app(app)
+
+    @login_manager.user_loader
+    def load_user(id):
+        return user_service.get(id)
+
     # register blueprints
     app.register_blueprint(admin)
+    app.register_blueprint(auth)
+    app.register_blueprint(home)
+
+    # ensure config users
+    db_conn = db.get_db(app)
+    cursor = db_conn.cursor()
+
+    for user in app.config["INITIAL_USERS"]:
+        try:
+            user_service.create(
+                User.from_dictionary(user), password_is_hashed=False, cursor=cursor
+            )
+
+            db_conn.commit()
+        except:
+            pass
+
+    cursor.close()
+    db_conn.close()
 
     return app

@@ -1,0 +1,31 @@
+{% extends "auth/base.html" %}
+
+{% block title %}Login{% endblock %}
+{% block content %}
+
+<h2>Login</h2>
+
+<form method="post" action="login">
+	{{ form.csrf_token }}
+	<div>
+		{{ form.name.label }}
+		{{ form.name }}
+	</div>
+	<div>
+		{{ form.password.label }}
+		{{ form.password }}
+	</div>
+
+	<div>
+		{{ form.remember }}
+		{{ form.remember.label }}
+	</div>
+	<div>
+		<button type="submit">Login</button>
+	</div>
+	<div>
+		<a href={{ url_for("auth.get_forgot") }}>Forgot password</a>
+	</div>
+</form>
+
+{% endblock %}

@@ -1,0 +1,7 @@
+<div>
+	You are receiving this email because someone indicated that you had
+	forgotten your password. If that wasn't you, ignore this email.
+	Otherwise, you can click <a href={{ url_for("auth.get_reset", code=model.code, _external=True) }}>here</a>
+	to reset your password. This link will expire in
+	{{ model.expiration_minutes }} minutes.
+</div>

@@ -1,0 +1,22 @@
+{% extends "auth/base.html" %}
+
+{% block title %}Reset Password{% endblock %}
+{% block content %}
+
+<h2>Reset password</h2>
+
+{% if form %}
+<form method="post" action="reset-password">
+	{{ form.csrf_token }}
+	{{ form.hidden_tag() }}
+	<div>
+		{{ form.password.label }}
+		{{ form.password }}
+	</div>
+	<div>
+		<button type="submit">Reset</button>
+	</div>
+</form>
+{% endif %}
+
+{% endblock %}

@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import uuid
 
 import click
 from flask import current_app, g
@@ -7,16 +8,23 @@ from flask.cli import with_appcontext
 from .migrate import migrate
 
 
-def get_db_location(app):
+def __get_db_location(app):
     return app.config["DATABASE"]
 
 
-def get_db():
+def __get_new_db(app):
+    db = sqlite3.connect(__get_db_location(app), detect_types=sqlite3.PARSE_DECLTYPES)
+
+    db.row_factory = sqlite3.Row
+    return db
+
+
+def get_db(app=None):
+    if app:
+        return __get_new_db(app)
+
     if "db" not in g:
-        g.db = sqlite3.connect(
-            get_db_location(current_app), detect_types=sqlite3.PARSE_DECLTYPES
-        )
-        g.db.row_factory = sqlite3.Row
+        g.db = __get_new_db(current_app)
 
     return g.db
 
@@ -46,12 +54,19 @@ def migrate_db_command():
 @with_appcontext
 def rebuild_db_command():
     """Rebuild the database from scratch. All non-static data will be lost."""
-    os.remove(get_db_location(current_app))
+    os.remove(__get_db_location(current_app))
     (_, new) = migrate(current_app, get_db())
     click.echo(f"Database rebuilt to version {new}")
 
 
+def register_uuid():
+    sqlite3.register_converter("UUID", lambda b: uuid.UUID(bytes_le=b))
+    sqlite3.register_adapter(uuid.UUID, lambda u: u.bytes_le)
+
+
 def init(app):
+    register_uuid()
+
     app.teardown_appcontext(close_db)
     app.cli.add_command(migrate_db_command)
     app.cli.add_command(rebuild_db_command)

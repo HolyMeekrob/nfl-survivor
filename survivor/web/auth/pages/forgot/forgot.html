@@ -1,0 +1,26 @@
+{% extends "auth/base.html" %}
+
+{% block title %}Forgot Password{% endblock %}
+{% block content %}
+
+<h2>Forgot password</h2>
+
+{% if form %}
+<form method="post" action="forgot-password">
+	{{ form.csrf_token }}
+	<div>
+		{{ form.email.label }}
+		{{ form.email }}
+	</div>
+	<div>
+		<button type="submit">Submit</button>
+	</div>
+</form>
+{% else %}
+<div>
+	An email has been sent to you.
+	Please follow the included directions to reset your password.
+</div>
+{% endif %}
+
+{% endblock %}
