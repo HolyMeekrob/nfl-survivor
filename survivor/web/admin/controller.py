@@ -3,7 +3,7 @@ from flask import Blueprint, abort, flash, redirect, render_template, url_for
 
 from survivor.services import season as season_service
 
-admin = Blueprint("admin", __name__, url_prefix="/admin", template_folder="templates")
+admin = Blueprint("admin", __name__, url_prefix="/admin", template_folder="pages")
 
 
 @admin.get("/")

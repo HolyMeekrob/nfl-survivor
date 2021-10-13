@@ -1,7 +1,7 @@
 import os
 
-from flask import Flask
-from flask_login import LoginManager
+from flask import Flask, redirect, request, url_for
+from flask_login import LoginManager, current_user
 
 from .data import db, User
 from .services import user as user_service
@@ -34,11 +34,23 @@ def create_app(test_config=None):
     except OSError:
         pass
 
+    @app.before_request
+    def require_authentication():
+        is_static = request.endpoint.startswith("static")
+        is_authenticated = current_user.is_authenticated
+        is_public = getattr(app.view_functions[request.endpoint], "is_public", False)
+
+        if any([is_static, is_authenticated, is_public]):
+            return
+        else:
+            return redirect(url_for("auth.get_login"))
+
     # initialize the database
     db.init(app)
 
     # initialize login manager
     login_manager = LoginManager()
+    login_manager.login_view = "auth.get_login"
     login_manager.init_app(app)
 
     @login_manager.user_loader

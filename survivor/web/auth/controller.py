@@ -9,6 +9,7 @@ from flask import (
 )
 from flask_login import current_user, login_user, logout_user
 from itsdangerous import SignatureExpired
+from urllib.parse import urljoin, urlparse
 
 from survivor.services import user as user_service
 from survivor.utils.email import send_email
@@ -17,10 +18,17 @@ from survivor.utils.security import (
     verify_forgot_password_code,
     verify_password_hash,
 )
+from survivor.utils.web import public_route
 from .emails import ForgotPasswordEmailModel
 from .pages import ForgotForm, LoginForm, ResetForm
 
 auth = Blueprint("auth", __name__, template_folder=".")
+
+
+def is_safe_url(target):
+    ref_url = urlparse(request.host_url)
+    test_url = urlparse(urljoin(request.host_url, target))
+    return test_url.scheme in ("http", "https") and ref_url.netloc == test_url.netloc
 
 
 def login(form):
@@ -28,8 +36,8 @@ def login(form):
 
 
 @auth.get("/login")
+@public_route
 def get_login():
-
     return (
         redirect(url_for("home.index"))
         if current_user.is_authenticated
@@ -38,6 +46,7 @@ def get_login():
 
 
 @auth.post("/login")
+@public_route
 def post_login():
     form = LoginForm()
 
@@ -53,8 +62,14 @@ def post_login():
         return login(form)
 
     login_user(user, remember=form.remember.data)
-    url = url_for(request.args.get("redirect") or "home.index")
-    return redirect(url)
+
+    next = request.args.get("next")
+
+    return (
+        redirect(next)
+        if next and is_safe_url(next)
+        else redirect(url_for("home.index"))
+    )
 
 
 @auth.get("/logout")
@@ -64,6 +79,7 @@ def logout():
 
 
 @auth.get("/register")
+@public_route
 def register():
     return "Register new account"
 
@@ -73,6 +89,7 @@ def forgot(form):
 
 
 @auth.get("/forgot-password")
+@public_route
 def get_forgot():
     return (
         redirect(url_for("home.index"))
@@ -82,6 +99,7 @@ def get_forgot():
 
 
 @auth.post("/forgot-password")
+@public_route
 def post_forgot():
     form = ForgotForm()
 
@@ -117,6 +135,7 @@ def reset(form):
 
 
 @auth.get("/reset-password")
+@public_route
 def get_reset():
     if current_user.is_authenticated:
         return redirect(url_for("home.index"))
@@ -127,6 +146,7 @@ def get_reset():
 
 
 @auth.post("/reset-password")
+@public_route
 def post_reset():
     def handle_error(msg):
         flash(f"{msg} Please submit a new forgot password request")

@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 	<meta charset='utf-8'>
 	<meta name='viewport' content='width=device-width, initial-scale=1'>
 	<title>{% block title %}{% endblock %} - NFL Survivor</title>
 	<link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
+	<link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
 </head>
+
 <body>
 	<h1>Survivor</h1>
 	<main>
@@ -13,9 +16,10 @@
 			<h1>{% block header %}{% endblock %}</h1>
 		</header>
 		{% for message in get_flashed_messages() %}
-			<div class="flash">{{message}}</div>
+		<div class="flash">{{message}}</div>
 		{% endfor %}
 		{% block content %}{% endblock %}
 	</main>
 </body>
+
 </html>

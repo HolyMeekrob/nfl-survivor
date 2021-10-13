@@ -1,1 +1,8 @@
-<h1>Home page</h1>
+{% extends 'base.html' %}
+
+{% block title %}Home{% endblock %}
+{% block header %}Home{% endblock %}
+
+{% block content %}
+<div>{{ config["APP_NAME"] }}</div>
+{% endblock %}
