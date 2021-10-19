@@ -1,21 +1,24 @@
-from survivor.data import get_db, Season, SeasonType, Week
-from survivor.api import get_season as fetch_season
-from .week import create as create_week
+from operator import attrgetter
+
+from survivor.api import get_season as fetch_season, get_week as fetch_week
+from survivor.data import GameState, Season, SeasonType
+from survivor.utils.db import wrap_operation
+from survivor.utils.list import flatten
+
+from . import game as game_service
+from . import week as week_service
 
 
-def get_seasons():
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute("SELECT * FROM season")
+@wrap_operation()
+def get_seasons(*, cursor=None):
+    cursor.execute("SELECT * FROM season;")
     seasons_raw = cursor.fetchall()
 
-    cursor.close()
     return [Season.to_season(season) for season in seasons_raw]
 
 
-def create(year):
-    db = get_db()
-    cursor = db.cursor()
+@wrap_operation(is_write=True)
+def create(year, *, cursor=None):
     cursor.execute(
         "INSERT INTO season (season_type, year) VALUES(:season_type, :year);",
         {"season_type": SeasonType.REGULAR.value, "year": year},
@@ -26,37 +29,49 @@ def create(year):
     weeks = fetch_season(year)
 
     for week in weeks:
-        create_week(id, week, cursor)
-
-    db.commit()
-    cursor.close()
+        week_service.create(id, week, cursor=cursor)
 
     return id
 
 
-def get(id):
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute("pragma short_column_names=OFF;")
-    cursor.execute("pragma full_column_names=ON;")
-    cursor.execute(
-        """
-        SELECT *
-        FROM season
-        LEFT JOIN week ON season.id = week.season_id
-        WHERE season.id = :id;
-        """,
-        {"id": id},
-    )
+@wrap_operation(is_write=True)
+def update_games(id, *, cursor=None):
+    def update_completed_weeks(year, weeks):
+        if not weeks:
+            return None
 
-    weeks_raw = cursor.fetchall()
+        week = weeks[0]
 
-    if not weeks_raw:
-        return None
+        if week_service.get_status(week, cursor=cursor) == GameState.COMPLETE:
+            return update_completed_weeks(year, weeks[1:])
 
-    season = Season.to_season(weeks_raw[0], "season")
-    season.weeks = [Week.to_week(week, "week") for week in weeks_raw]
+        week = fetch_week(year, week.number)
+        games = [
+            game_service.update_from_api(year, week.number, game, cursor=cursor)
+            for game in week.games
+        ]
 
-    cursor.close()
+        status = min(flatten(games), key=attrgetter("state.value")).state
 
-    return season
+        # If this week is complete, update the next week
+        # Otherwise the next week hasn't started yet and so we can stop recursing
+        return (
+            games + update_completed_weeks(year, weeks[1:])
+            if status == GameState.COMPLETE
+            else None
+        )
+
+    season = get(id, cursor=cursor)
+
+    weeks = week_service.get_by_season(id, cursor=cursor) or []
+    weeks.sort(key=attrgetter("number"))
+
+    return update_completed_weeks(season.year, weeks)
+
+
+@wrap_operation()
+def get(id, *, cursor=None):
+    cursor.execute("SELECT * FROM season WHERE id = :id LIMIT 1;", {"id": id})
+
+    season_raw = cursor.fetchone()
+    return Season.to_season(season_raw)

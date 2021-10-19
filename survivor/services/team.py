@@ -1,10 +1,9 @@
-from survivor.data import get_db, Team
+from survivor.data import Team
+from survivor.utils.db import wrap_operation
 
 
-def get_by_name(name):
-    db = get_db()
-    cursor = db.cursor()
-
+@wrap_operation()
+def get_by_name(name, *, cursor=None):
     cursor.execute("SELECT * FROM team WHERE name = :name", {"name": name})
     row = cursor.fetchone()
 
@@ -12,5 +11,4 @@ def get_by_name(name):
     if cursor != None:
         team = Team.to_team(row)
 
-    cursor.close()
     return team

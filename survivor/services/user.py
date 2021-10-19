@@ -1,6 +1,7 @@
 import uuid
 
-from survivor.data import get_db, User
+from survivor.data import User
+from survivor.utils.db import wrap_operation
 from survivor.utils.security import create_password_hash
 
 
@@ -8,10 +9,8 @@ def __get_password(password_is_hashed, password):
     return password if password_is_hashed else create_password_hash(password)
 
 
-def get(id):
-    db = get_db()
-    cursor = db.cursor()
-
+@wrap_operation()
+def get(id, *, cursor=None):
     id = id if isinstance(id, uuid.UUID) else uuid.UUID(id)
 
     cursor.execute("SELECT * FROM user WHERE id = :id LIMIT 1;", {"id": id})
@@ -19,33 +18,21 @@ def get(id):
 
     user = User.to_user(user_raw)
 
-    cursor.close()
-
     return user
 
 
-def get_by_email(email):
-    db = get_db()
-    cursor = db.cursor()
-
+@wrap_operation()
+def get_by_email(email, *, cursor=None):
     cursor.execute("SELECT * FROM user WHERE email = :email LIMIT 1;", {"email": email})
     user_raw = cursor.fetchone()
 
     user = User.to_user(user_raw)
 
-    cursor.close()
-
     return user
 
 
-def create(user, password_is_hashed=True, cursor=None):
-    is_local_cursor = cursor == None
-    db = None
-
-    if is_local_cursor:
-        db = get_db()
-        cursor = db.cursor()
-
+@wrap_operation(is_write=True)
+def create(user, password_is_hashed=True, *, cursor=None):
     id = uuid.uuid4()
     cursor.execute(
         """
@@ -64,17 +51,11 @@ def create(user, password_is_hashed=True, cursor=None):
 
     id = cursor.lastrowid
 
-    if is_local_cursor:
-        db.commit()
-        cursor.close()
-
     return id
 
 
-def save(user, password_is_hashed=True):
-    db = get_db()
-    cursor = db.cursor()
-
+@wrap_operation(is_write=True)
+def save(user, password_is_hashed=True, *, cursor=None):
     user.password = __get_password(password_is_hashed, user.password)
 
     cursor.execute(
@@ -97,8 +78,5 @@ def save(user, password_is_hashed=True):
             "password": user.password,
         },
     )
-
-    db.commit()
-    cursor.close()
 
     return user

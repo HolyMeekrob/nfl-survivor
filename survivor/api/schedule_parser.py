@@ -1,5 +1,5 @@
 from datetime import datetime, timezone, timedelta
-from .game import Game
+from .game import Game, GameState
 from enum import Enum, auto
 from html.parser import HTMLParser
 import re
@@ -36,6 +36,16 @@ def has_class(attrs, _class):
         return name == "class" and _class in val
 
     return any_match(class_is_included, attrs)
+
+
+def get_state(attrs):
+    if has_class(attrs, "pregame"):
+        return GameState.PREGAME
+
+    if has_class(attrs, "ingame"):
+        return GameState.IN_PROGRESS
+
+    return GameState.COMPLETE
 
 
 class Parser(HTMLParser):
@@ -88,7 +98,7 @@ class NoneParser(SubParser):
     def handle_starttag(self, root, tag, attrs):
         if tag == "div" and has_class(attrs, "single-score-card"):
             game = Game()
-            game.is_complete = has_class(attrs, "postgame")
+            game.state = get_state(attrs)
             root.games.append(game)
             return ProcessMode.GAME
 

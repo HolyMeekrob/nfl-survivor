@@ -4,10 +4,15 @@
 {% block header %}Season administration {{season.year}}{% endblock %}
 
 {% block content %}
+<div>
+	<h2>Season {{season.year}}</h2>
+	{% for week in season.weeks %}
+	<div>{{week.number}}</div>
+	{% endfor %}
 	<div>
-		<h2>Season {{season.year}}</h2>
-		{% for week in season.weeks %}
-			<div>{{week.number}}</div>
-		{% endfor %}
+		<form method="post" action="update-games/{{season.id}}">
+			<button type="submit">Update games</button>
+		</form>
 	</div>
+</div>
 {% endblock %}

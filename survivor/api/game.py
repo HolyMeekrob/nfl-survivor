@@ -1,3 +1,6 @@
+from enum import Enum, auto
+
+
 class Game:
     def __init__(self):
         self.date = None
@@ -6,7 +9,7 @@ class Game:
         self.away_score = None
         self.home_score = None
         self.odds = None
-        self.is_complete = None
+        self.state = None
 
     def __str__(self):
         if self.away_score != None and self.home_score != None:
@@ -29,3 +32,9 @@ class Game:
             self.home_score = score
         else:
             raise
+
+
+class GameState(Enum):
+    PREGAME = auto()
+    IN_PROGRESS = auto()
+    COMPLETE = auto()

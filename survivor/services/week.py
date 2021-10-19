@@ -1,15 +1,12 @@
-from survivor.data import get_db
-from .game import create as create_game
+from operator import attrgetter
+
+from survivor.data import Week
+from survivor.utils.db import wrap_operation
+from . import game as game_service
 
 
-def create(season_id, week, cursor=None):
-    is_local_cursor = cursor == None
-    db = None
-
-    if is_local_cursor:
-        db = get_db()
-        cursor = db.cursor()
-
+@wrap_operation(is_write=True)
+def create(season_id, week, *, cursor=None):
     cursor.execute(
         "INSERT INTO week (season_id, number) VALUES(:season_id, :number);",
         {"season_id": season_id, "number": week.number},
@@ -18,10 +15,27 @@ def create(season_id, week, cursor=None):
     id = cursor.lastrowid
 
     for game in week.games:
-        create_game(id, game, cursor)
-
-    if is_local_cursor:
-        db.commit()
-        cursor.close()
+        game_service.create(id, game, cursor=cursor)
 
     return id
+
+
+@wrap_operation()
+def get_by_season(season_id, *, cursor=None):
+    cursor.execute(
+        """
+        SELECT *
+        FROM week
+        WHERE season_id = :season_id
+        """,
+        {"season_id": season_id},
+    )
+
+    weeks_raw = cursor.fetchall()
+
+    return [Week.to_week(week) for week in weeks_raw]
+
+
+def get_status(week, *, cursor=None):
+    games = game_service.get_by_week(week.id, cursor=cursor)
+    return min(games, key=attrgetter("state.value")).state

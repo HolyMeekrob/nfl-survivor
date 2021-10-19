@@ -5,7 +5,9 @@ import uuid
 import click
 from flask import current_app, g
 from flask.cli import with_appcontext
+
 from .migrate import migrate
+from .models import GameState
 
 
 def __get_db_location(app):
@@ -64,8 +66,19 @@ def register_uuid():
     sqlite3.register_adapter(uuid.UUID, lambda u: u.bytes_le)
 
 
+def register_game_state():
+    sqlite3.register_converter(
+        "GAME_STATE",
+        lambda name: GameState[name.decode()]
+        if isinstance(name, bytes)
+        else GameState[name],
+    )
+    sqlite3.register_adapter(GameState, lambda state: state.name)
+
+
 def init(app):
     register_uuid()
+    register_game_state()
 
     app.teardown_appcontext(close_db)
     app.cli.add_command(migrate_db_command)
