@@ -7,7 +7,7 @@ from flask import current_app, g
 from flask.cli import with_appcontext
 
 from .migrate import migrate
-from .models import GameState
+from .models import GameState, InvitationStatus
 
 
 def __get_db_location(app):
@@ -61,24 +61,26 @@ def rebuild_db_command():
     click.echo(f"Database rebuilt to version {new}")
 
 
-def register_uuid():
+def __register_uuid():
     sqlite3.register_converter("UUID", lambda b: uuid.UUID(bytes_le=b))
     sqlite3.register_adapter(uuid.UUID, lambda u: u.bytes_le)
 
 
-def register_game_state():
+def __register_enum(enum_type, sql_type):
     sqlite3.register_converter(
-        "GAME_STATE",
-        lambda name: GameState[name.decode()]
+        sql_type,
+        lambda name: enum_type[name.decode()]
         if isinstance(name, bytes)
-        else GameState[name],
+        else enum_type[name],
     )
-    sqlite3.register_adapter(GameState, lambda state: state.name)
+
+    sqlite3.register_adapter(enum_type, lambda enum_val: enum_val.name)
 
 
 def init(app):
-    register_uuid()
-    register_game_state()
+    __register_uuid()
+    __register_enum(GameState, "GAME_STATE")
+    __register_enum(InvitationStatus, "INVITATION_STATUS")
 
     app.teardown_appcontext(close_db)
     app.cli.add_command(migrate_db_command)

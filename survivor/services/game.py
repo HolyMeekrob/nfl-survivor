@@ -15,9 +15,12 @@ __gameStateMap = {
 def get_by_week(week_id, *, cursor=None):
     cursor.execute(
         """
-        SELECT *
-        FROM game
-        WHERE week_id = :week_id
+        SELECT
+            *
+        FROM
+            game
+        WHERE
+            week_id = :week_id
         """,
         {"week_id": week_id},
     )
@@ -63,7 +66,8 @@ def create(week_id, game, *, cursor=None):
 def update(game, *, cursor=None):
     cursor.execute(
         """
-        UPDATE game
+        UPDATE
+            game
         SET
             away_team_id = :away_team_id,
             home_team_id = :home_team_id,
@@ -94,15 +98,19 @@ def update(game, *, cursor=None):
 def get_by_matchup(away_team_id, home_team_id, year, week, *, cursor=None):
     cursor.execute(
         """
-        SELECT game.*
-        FROM game
-        INNER JOIN week ON game.week_id = week.id
-        INNER JOIN season ON week.season_id = season.id
+        SELECT
+            game.*
+        FROM
+            game
+        INNER JOIN
+            week    ON game.week_id = week.id
+        INNER JOIN
+            season  ON week.season_id = season.id
         WHERE
-            game.away_team_id = :away_team_id AND
-            game.home_team_id = :home_team_id AND
-            week.number = :week AND
-            season.year = :year
+            game.away_team_id   = :away_team_id AND
+            game.home_team_id   = :home_team_id AND
+            week.number         = :week         AND
+            season.year         = :year
         """,
         {
             "away_team_id": away_team_id,

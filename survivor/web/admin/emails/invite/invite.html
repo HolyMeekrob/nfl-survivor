@@ -1,0 +1,21 @@
+<div>
+	{{ model.inviter }} has invited you to join the NFL Survivor League
+	<span style="font-weight:bold;">{{ model.league }}</span>.
+
+	{% if model.is_existing_account %}
+
+	You can accept or reject the invitation on your
+	<a href={{ url_for("home.my_invitations", _external=True) }}>invitations page.</a>
+
+	{% else %}
+
+	You can accept the invitation after registering for an account
+	<a href={{ url_for("auth.get_register", code=model.code, next="invitations" , _external=True ) }}>here</a>.
+
+	{% endif %}
+
+	Otherwise the invitation will expire once the first game of the
+	season is underway.
+</div>
+
+<div></div>

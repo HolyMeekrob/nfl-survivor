@@ -1,0 +1,28 @@
+{% extends "auth/base.html" %}
+
+{% block title %}Register{% endblock %}
+{% block content %}
+
+<h2>Register a new account</h2>
+
+<form method="post">
+	{{ form.csrf_token }}
+	{{ form.hidden_tag() }}
+	<div>
+		{{ form.email.label }}
+		{% if form.is_email_read_only.data %}
+		{{ form.email(readonly="readonly") }}
+		{% else %}
+		{{ form.email }}
+		{% endif %}
+	</div>
+	<div>
+		{{ form.password.label }}
+		{{ form.password }}
+	</div>
+	<div>
+		<button type="submit">Register</button>
+	</div>
+</form>
+
+{% endblock %}

@@ -22,6 +22,14 @@ def get(id, *, cursor=None):
 
 
 @wrap_operation()
+def get_all(*, cursor=None):
+    cursor.execute("SELECT * FROM user;")
+    users_raw = cursor.fetchall()
+
+    return [User.to_user(user) for user in users_raw]
+
+
+@wrap_operation()
 def get_by_email(email, *, cursor=None):
     cursor.execute("SELECT * FROM user WHERE email = :email LIMIT 1;", {"email": email})
     user_raw = cursor.fetchone()
@@ -49,25 +57,25 @@ def create(user, password_is_hashed=True, *, cursor=None):
         },
     )
 
-    id = cursor.lastrowid
-
     return id
 
 
 @wrap_operation(is_write=True)
-def save(user, password_is_hashed=True, *, cursor=None):
+def update(user, password_is_hashed=True, *, cursor=None):
     user.password = __get_password(password_is_hashed, user.password)
 
     cursor.execute(
         """
-        UPDATE user
+        UPDATE
+            user
         SET
-            email = :email,
-            first_name = :first_name,
-            last_name = :last_name,
-            nickname = :nickname,
-            password = :password
-        WHERE id = :id
+            email       = :email,
+            first_name  = :first_name,
+            last_name   = :last_name,
+            nickname    = :nickname,
+            password    = :password
+        WHERE
+            id = :id
     """,
         {
             "id": user.id,

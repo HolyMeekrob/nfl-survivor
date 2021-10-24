@@ -4,7 +4,7 @@ from survivor.utils.db import wrap_operation
 
 @wrap_operation()
 def get_by_name(name, *, cursor=None):
-    cursor.execute("SELECT * FROM team WHERE name = :name", {"name": name})
+    cursor.execute("SELECT * FROM team WHERE name = :name;", {"name": name})
     row = cursor.fetchone()
 
     team = None

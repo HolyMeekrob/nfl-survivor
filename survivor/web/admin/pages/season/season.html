@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}Season Admin - {{model.season.year}}{% endblock %}
+{% block header %}Season administration {{model.season.year}}{% endblock %}
+
+{% block scripts %}
+<script src="/static/admin/season.js"></script>
+{% endblock %}
+
+{% block content %}
+<div>
+	<h2>Season {{model.season.year}}</h2>
+	<h3>{{ model.status.name }}</h3>
+	{% for week in model.weeks %}
+	<div>{{week.number}}</div>
+	{% endfor %}
+
+	{% if model.status.name != "COMPLETE" %}
+	<div>
+		<form id="update-games" method="post" action="updateGames">
+			{{ model.update_games_form.csrf_token }}
+			{{ model.update_games_form.hidden_tag() }}
+
+			<button type="submit">Update games</button>
+		</form>
+	</div>
+	{% endif %}
+
+	{% for participant in model.participants %}
+	<div>{{ participant.name }}</div>
+	{% endfor %}
+
+	{% if model.can_invite_users() %}
+	<h3>Invite players</h3>
+	<ul>
+		{% for user in model.non_participants %}
+		<li>
+			{{ user[0].name }}
+			{% if model.can_invite_user(user) %}
+			<button type="button" data-action="invite" data-id="{{ user[0].id }}">Invite</button>
+			{% else %}
+			<span>(Pending)</span>
+			{% endif %}
+		</li>
+		{% endfor %}
+	</ul>
+	<form id="invite-new-user" method="post" action="inviteNewUser">
+		{{ model.invite_new_user_form.csrf_token }}
+		{{ model.invite_new_user_form.hidden_tag() }}
+		<div>
+			{{ model.invite_new_user_form.email.label }}
+			{{ model.invite_new_user_form.email }}
+			<button type="submit">Invite</button>
+		</div>
+	</form>
+	{% endif %}
+
+
+</div>
+
+<input type="hidden" id="season-id" value="{{ model.season.id }}" />
+{% endblock %}

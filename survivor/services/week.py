@@ -24,9 +24,12 @@ def create(season_id, week, *, cursor=None):
 def get_by_season(season_id, *, cursor=None):
     cursor.execute(
         """
-        SELECT *
-        FROM week
-        WHERE season_id = :season_id
+        SELECT
+            *
+        FROM
+            week
+        WHERE
+            season_id = :season_id;
         """,
         {"season_id": season_id},
     )
@@ -36,6 +39,7 @@ def get_by_season(season_id, *, cursor=None):
     return [Week.to_week(week) for week in weeks_raw]
 
 
+@wrap_operation()
 def get_status(week, *, cursor=None):
     games = game_service.get_by_week(week.id, cursor=cursor)
     return min(games, key=attrgetter("state.value")).state

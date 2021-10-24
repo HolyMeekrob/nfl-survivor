@@ -36,9 +36,11 @@ def create_app(test_config=None):
 
     @app.before_request
     def require_authentication():
-        is_static = request.endpoint.startswith("static")
+        is_static = request.endpoint and request.endpoint.startswith("static")
         is_authenticated = current_user.is_authenticated
-        is_public = getattr(app.view_functions[request.endpoint], "is_public", False)
+        is_public = request.endpoint and getattr(
+            app.view_functions[request.endpoint], "is_public", False
+        )
 
         if any([is_static, is_authenticated, is_public]):
             return
