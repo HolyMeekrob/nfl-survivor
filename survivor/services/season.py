@@ -152,3 +152,9 @@ def create_invitation(id, user_id, *, cursor=None):
     )
 
     return cursor.lastrowid
+
+
+@wrap_operation()
+def is_season_joinable(season_id: int, *, cursor=None):
+    status = get_status(season_id, cursor=cursor)
+    return status == GameState.PREGAME
