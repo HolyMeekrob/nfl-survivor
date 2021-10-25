@@ -26,3 +26,6 @@ class InvitationStatus(Enum):
     REVOKED = auto()
     EXPIRED = auto()
     CANCELED = auto()
+
+    def is_actionable(self):
+        return self.value == InvitationStatus.PENDING.value
