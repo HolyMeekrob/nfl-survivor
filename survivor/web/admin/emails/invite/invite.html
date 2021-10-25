@@ -5,7 +5,7 @@
 	{% if model.is_existing_account %}
 
 	You can accept or reject the invitation on your
-	<a href={{ url_for("home.my_invitations", _external=True) }}>invitations page.</a>
+	<a href={{ url_for("home.get_my_invitations", _external=True) }}>invitations page.</a>
 
 	{% else %}
 

@@ -3,6 +3,23 @@
 {% block title %}My invitations{% endblock %}
 {% block header %}My invitations{% endblock %}
 
+{% block scripts %}
+<script src="/static/home/invitations.js"></script>
+{% endblock %}
+
 {% block content %}
-<div>Your invitations go here.</div>
+{% for status in model.invitations %}
+<h2>{{ status.name }}</h2>
+<ul>
+	{% for invitation in model.invitations[status] %}
+	<li data-season-id={{ invitation[0].id }}>
+		{{ invitation[0].year }}
+		{% if model.is_actionable(status) %}
+		<button type="button" data-action="accept">Accept</button>
+		<button type="button" data-action="decline">Decline</button>
+		{% endif %}
+	</li>
+	{% endfor %}
+</ul>
+{% endfor %}
 {% endblock %}

@@ -1,3 +1,4 @@
+from functools import reduce
 from itertools import chain
 from .functional import identity
 
@@ -52,3 +53,16 @@ def filter_list(lst, predicate):
 
 def first(lst, predicate, default=None):
     return next((elem for elem in lst if predicate(elem)), default)
+
+
+def groupby(lst, key):
+    def add_to_dict(groups: dict, elem):
+        elem_key = key(elem)
+
+        if not elem_key in groups:
+            groups[elem_key] = []
+
+        groups[elem_key].append(elem)
+        return groups
+
+    return reduce(add_to_dict, lst, {})
