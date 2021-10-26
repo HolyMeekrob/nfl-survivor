@@ -41,7 +41,7 @@ def close_db(e=None):
 @click.command("migrate-db")
 @with_appcontext
 def migrate_db_command():
-    """Run pending database migration scripts"""
+    """Run pending database migration scripts."""
     (old, new) = migrate(current_app, get_db())
 
     if old == new:

@@ -3,7 +3,7 @@ import os
 from flask import Flask, redirect, request, url_for
 from flask_login import LoginManager, current_user
 
-from .data import db, User
+from .data import db, import_csv, User
 from .services import user as user_service
 from .web import admin, auth, home
 
@@ -49,6 +49,9 @@ def create_app(test_config=None):
 
     # initialize the database
     db.init(app)
+
+    # initialize csv import command
+    import_csv.init(app)
 
     # initialize login manager
     login_manager = LoginManager()
