@@ -88,6 +88,11 @@ def import_user(name: str, cursor: Cursor):
         },
     )
 
+    cursor.execute(
+        "INSERT INTO season_participant (season_id, user_id) VALUES (:season_id, :user_id);",
+        {"season_id": 1, "user_id": user.id},
+    )
+
     return user.id
 
 
