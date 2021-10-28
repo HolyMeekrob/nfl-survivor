@@ -1,4 +1,5 @@
 from operator import attrgetter
+from sqlite3 import Cursor
 
 from survivor.api import get_season as fetch_season, get_week as fetch_week
 from survivor.data import (
@@ -77,7 +78,7 @@ def update_games(id, *, cursor=None):
 
 
 @wrap_operation()
-def get(id, *, cursor=None):
+def get(id: int, *, cursor: Cursor = None) -> Season:
     cursor.execute("SELECT * FROM season WHERE id = :id LIMIT 1;", {"id": id})
 
     season_raw = cursor.fetchone()

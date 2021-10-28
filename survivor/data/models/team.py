@@ -1,16 +1,26 @@
 class Team:
+    id: int
+    location: str
+    name: str
+    abbreviation: str
+
     def __init__(self):
-        self.id = None
-        self.location = None
-        self.name = None
-        self.abbreviation = None
+        self.id = 0
+        self.location = ""
+        self.name = ""
+        self.abbreviation = ""
 
     @staticmethod
-    def to_team(row):
+    def to_team(row, prefix=""):
+        get_value = lambda key: row[f"{prefix}.{key}"] if prefix else row[key]
+
+        if not row:
+            return None
+
         team = Team()
-        team.id = row["id"]
-        team.location = row["location"]
-        team.name = row["name"]
-        team.abbreviation = row["abbreviation"]
+        team.id = get_value("id")
+        team.location = get_value("location")
+        team.name = get_value("name")
+        team.abbreviation = get_value("abbreviation")
 
         return team

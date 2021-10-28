@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %} {% block header %}Season {{ model.season.year }}{% endblock %} {% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='home/season.css') }}">
+{% endblock %}
+
+
+{% block content %}
+<table class="standings">
+	<thead>
+		<tr>
+			<th>Rank</th>
+			<th>Name</th>
+			{% for _ in model.standings[0].teams %}
+			<th>Week {{ loop.index }}</th>
+			{% endfor %}
+		</tr>
+	</thead>
+	<tbody>
+		{% for standing in model.standings %}
+		<tr>
+			<td class={{ "eliminated" if standing[0].is_eliminated() else "" }}>
+				{{ standing[1] }}
+			</td>
+			<td class={{ "eliminated" if standing[0].is_eliminated() else "" }}>
+				{{ standing[0].user.name }}
+			</td>
+			{% for team in standing[0].teams %}
+			<td class={{ "missed" if loop.index in standing[0].misses else "nailed" }}>
+				{{ team }}
+			</td>
+			{% endfor %}
+		</tr>
+		{% endfor %}
+	</tbody>
+</table>
+{% endblock %}

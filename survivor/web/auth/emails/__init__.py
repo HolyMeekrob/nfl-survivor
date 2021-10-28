@@ -1,1 +1,1 @@
-from .forgot.forgot import ForgotPasswordEmailModel
+from .auth.forgot.forgot import ForgotPasswordEmailModel

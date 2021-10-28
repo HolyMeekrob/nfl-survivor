@@ -38,7 +38,7 @@ def go_home():
 
 
 def login(form):
-    return render_template("pages/login/login.html", form=form)
+    return render_template("pages/auth/login/login.html", form=form)
 
 
 @auth.get("/login")
@@ -77,7 +77,7 @@ def logout():
 
 
 def register(form):
-    return render_template("pages/register/register.html", form=form)
+    return render_template("pages/auth/register/register.html", form=form)
 
 
 @auth.get("/register")
@@ -134,7 +134,7 @@ def post_register():
 
 
 def forgot(form):
-    return render_template("pages/forgot/forgot.html", form=form)
+    return render_template("pages/auth/forgot/forgot.html", form=form)
 
 
 @auth.get("/forgot-password")
@@ -162,7 +162,7 @@ def post_forgot():
     code = get_forgot_password_code(email)
 
     message = render_template(
-        "emails/forgot/forgot.html",
+        "emails/auth/forgot/forgot.html",
         model=ForgotPasswordEmailModel(
             email, code, int(current_app.config["FORGOT_PASSWORD_LINK_EXPIRATION"] / 60)
         ),
@@ -176,7 +176,7 @@ def post_forgot():
 
 
 def reset(form):
-    return render_template("pages/reset/reset.html", form=form)
+    return render_template("pages/auth/reset/reset.html", form=form)
 
 
 @auth.get("/reset-password")

@@ -10,7 +10,9 @@ from survivor.utils.db import wrap_operation
 
 
 @wrap_operation()
-def get_user_invitations(user_id: UUID, *, cursor: Cursor = None):
+def get_user_invitations(
+    user_id: UUID, *, cursor: Cursor = None
+) -> tuple[Season, InvitationStatus]:
     cursor.execute(
         """
         SELECT
@@ -33,7 +35,7 @@ def get_user_invitations(user_id: UUID, *, cursor: Cursor = None):
 
 
 @wrap_operation(is_write=True)
-def expire_invitations(season_id: int, user_id: UUID, *, cursor: Cursor = None):
+def expire_invitations(season_id: int, user_id: UUID, *, cursor: Cursor = None) -> bool:
     cursor.execute(
         """
         UPDATE
@@ -53,11 +55,14 @@ def expire_invitations(season_id: int, user_id: UUID, *, cursor: Cursor = None):
         },
     )
 
+    return True
+
 
 @wrap_operation(is_write=True)
-def accept_invitations(season_id: int, user_id: UUID, *, cursor: Cursor = None):
+def accept_invitations(season_id: int, user_id: UUID, *, cursor: Cursor = None) -> bool:
     if not season_service.is_season_joinable(season_id, cursor=cursor):
-        return expire_invitations(season_id, user_id, cursor=cursor)
+        expire_invitations(season_id, user_id, cursor=cursor)
+        return False
 
     cursor.execute(
         """
@@ -84,7 +89,9 @@ def accept_invitations(season_id: int, user_id: UUID, *, cursor: Cursor = None):
 
 
 @wrap_operation(is_write=True)
-def decline_invitations(season_id: int, user_id: UUID, *, cursor: Cursor = None):
+def decline_invitations(
+    season_id: int, user_id: UUID, *, cursor: Cursor = None
+) -> bool:
     cursor.execute(
         """
         UPDATE

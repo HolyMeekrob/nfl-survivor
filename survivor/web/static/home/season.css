@@ -1,0 +1,15 @@
+.standings td {
+	text-align: center;
+}
+
+td.eliminated {
+	text-decoration: line-through;
+}
+
+td.nailed {
+	background-color: #00cc00;
+}
+
+td.missed {
+	background-color: #ff3333;
+}

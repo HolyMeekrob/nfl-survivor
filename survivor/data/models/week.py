@@ -8,6 +8,9 @@ class Week:
     def to_week(row, prefix=""):
         get_value = lambda key: row[f"{prefix}.{key}"] if prefix else row[key]
 
+        if not row:
+            return None
+
         week = Week()
         week.id = get_value("id")
         week.season_id = get_value("season_id")

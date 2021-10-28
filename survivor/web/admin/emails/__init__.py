@@ -1,1 +1,1 @@
-from .invite.invite import SendInvitationEmailModel
+from .admin.invite.invite import SendInvitationEmailModel

@@ -1,6 +1,11 @@
 from functools import reduce
 from itertools import chain
+from typing import Callable, TypeVar
+
 from .functional import identity
+
+T = TypeVar("T")
+U = TypeVar("U")
 
 
 def flatten(lists):
@@ -43,19 +48,27 @@ def all(lst, predicate=identity):
     return all([predicate(elem) for elem in lst])
 
 
-def map_list(lst, fun):
-    return list(map(lst, fun))
+def count(lst, predicate=identity):
+    return len([elem for elem in lst if predicate(elem)])
 
 
-def filter_list(lst, predicate):
-    return list(filter(lst, predicate))
+def append(lst, elem):
+    return lst + [elem]
+
+
+def map_list(fun: Callable[[T], U], lst: list[T]) -> list[U]:
+    return list(map(fun, lst))
+
+
+def filter_list(predicate, lst):
+    return list(filter(predicate, lst))
 
 
 def first(lst, predicate, default=None):
     return next((elem for elem in lst if predicate(elem)), default)
 
 
-def groupby(lst, key):
+def groupby(lst: list[T], key: Callable[[T], U]) -> dict[U, list[T]]:
     def add_to_dict(groups: dict, elem):
         elem_key = key(elem)
 
@@ -66,3 +79,7 @@ def groupby(lst, key):
         return groups
 
     return reduce(add_to_dict, lst, {})
+
+
+def indexes(lst: list[T], value: T, index_from: int = 0) -> list[int]:
+    return [i + index_from for (i, elem) in enumerate(lst) if elem == value]

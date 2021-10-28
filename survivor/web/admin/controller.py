@@ -29,12 +29,12 @@ admin = Blueprint("admin", __name__, url_prefix="/admin", template_folder=".")
 
 @admin.get("/")
 def index():
-    return render_template("pages/index.html")
+    return render_template("pages/admin/index.html")
 
 
 @admin.get("/seasons")
 def seasons():
-    return render_template("pages/seasons.html", seasons=season_service.get_all())
+    return render_template("pages/admin/seasons.html", seasons=season_service.get_all())
 
 
 @admin.get("/season/<int:id>")
@@ -76,7 +76,7 @@ def season(id, *, update_games_form=None, invite_new_user_form=None):
     if not model:
         return abort(404)
 
-    return render_template("pages/season/season.html", model=model)
+    return render_template("pages/admin/season/season.html", model=model)
 
 
 @admin.post("/season")
@@ -128,7 +128,7 @@ def __create_invitation(season_id, user_id, is_existing_user):
     code = get_invitation_code(user.email)
 
     message = render_template(
-        "emails/invite/invite.html",
+        "emails/admin/invite/invite.html",
         model=SendInvitationEmailModel(
             current_user.name, current_app.config["APP_NAME"], is_existing_user, code
         ),
