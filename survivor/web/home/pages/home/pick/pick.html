@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}
+{% block header %}
+Enter Pick
+{% endblock %}
+{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='home/pick.css') }}">
+{% endblock %}
+
+{% block content %}
+{% if not model.season %}
+<h2>User is not participating in an active season</h2>
+{% else %}
+<h2>
+	Season {{ model.season.year }} - Week {{ model.week.number }}
+</h2>
+
+<form method="post" action="pick">
+	{{ model.form.hidden_tag() }}
+
+	<div class="games">
+		{% for game in model.games %}
+		<div class="game">
+			<div>
+				{% for team in model.form.team_id %}
+				{% if team.data == game.away_team_id %}
+				{% set already_picked = game.away_team_id in model.ineligible_teams %}
+				{{ team_entry(team, already_picked and model.can_enter_pick )}}
+				{% endif %}
+				{% endfor %}
+			</div>
+			<div>at</div>
+			<div>
+				{% for team in model.form.team_id %}
+				{% if team.data == game.home_team_id %}
+				{% set already_picked = game.home_team_id in model.ineligible_teams %}
+				{{ team_entry(team, already_picked and model.can_enter_pick, game.odds)}}
+				{% endif %}
+				{% endfor %}
+			</div>
+		</div>
+		{% endfor %}
+	</div>
+
+	{% if model.can_enter_pick %}
+	<button type="submit">Pick</button>
+	{% endif %}
+</form>
+{% endif %}
+{% endblock %}
+
+{% macro team_entry(team, is_disabled, odds) %}
+<span class="team {{ " already-picked" if is_disabled else "" }}">
+	{{ team(disabled = is_disabled) }}
+	{{ team.label}}
+	{% if odds %}
+	{{ odds }}
+	{% endif %}
+</span>{%- endmacro %}

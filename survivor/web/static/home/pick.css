@@ -1,0 +1,19 @@
+.games {
+	display: flex;
+	flex-wrap: wrap;
+}
+
+.game {
+	margin: 1rem 2rem;
+	border: 1px solid black;
+	padding: 1rem;
+	width: 10rem;
+}
+
+.team {
+	white-space: nowrap;
+}
+
+.already-picked {
+	color: #666666;
+}

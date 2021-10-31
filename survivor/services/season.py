@@ -11,6 +11,7 @@ from survivor.data import (
     User,
 )
 from survivor.utils.db import wrap_operation
+from survivor.utils.functional import complement
 from survivor.utils.list import flatten
 
 from . import game as game_service
@@ -107,7 +108,7 @@ def get_participants(id, *, cursor=None):
 
 
 @wrap_operation()
-def get_status(id, *, cursor=None):
+def get_status(id: int, *, cursor=None):
     weeks = week_service.get_by_season(id, cursor=cursor)
     statuses = [week_service.get_status(week, cursor=cursor) for week in weeks]
 
@@ -122,6 +123,13 @@ def get_status(id, *, cursor=None):
         return GameState.COMPLETE
 
     return GameState.IN_PROGRESS
+
+
+def is_complete(id: int):
+    return get_status(id) == GameState.COMPLETE
+
+
+is_incomplete = complement(is_complete)
 
 
 @wrap_operation()

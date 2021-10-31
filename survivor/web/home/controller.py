@@ -1,19 +1,34 @@
-from flask import Blueprint, abort, render_template
+from flask import Blueprint, Flask, abort, current_app, flash, render_template
 from flask_login import current_user
 from typing import Callable
 from uuid import UUID
 
-from survivor.data import InvitationStatus
+from survivor.data import GameState, InvitationStatus, Season, Team
 from survivor.services import (
+    game as game_service,
+    pick as pick_service,
     scoring as scoring_service,
     season as season_service,
     season_invitation as invitation_service,
+    season_participant as participant_service,
+    team as team_service,
+    week as week_service,
 )
-from survivor.utils.functional import all_true
+from survivor.utils.functional import all_true, always
+from survivor.utils.list import filter_list, first
+from survivor.web.home.pages.home.pick.pick import PickViewModel
+
 from .pages import MyInvitationsViewModel
+from .pages import PickForm, PickViewModel
 from .pages import SeasonViewModel
 
 home = Blueprint("home", __name__, template_folder=".")
+
+
+# TODO: This should come from db or config
+def __get_pick_message(app: Flask, team: Team):
+    default_msg = f"You have selected the {team.location} {team.name}. Good luck!"
+    return app.config["CUSTOM_PICK_MESSAGES"].get(team.abbreviation, default_msg)
 
 
 @home.get("/")
@@ -64,3 +79,99 @@ def season(season_id: int):
     model = SeasonViewModel(season, standings)
 
     return render_template("pages/home/season/season.html", model=model)
+
+
+def pick(form: PickForm = None):
+    user_id = current_user.id
+    seasons = participant_service.get_seasons_for_user(user_id)
+
+    def is_incomplete(season: Season) -> bool:
+        return season_service.is_incomplete(season.id)
+
+    active_seasons = filter_list(is_incomplete, seasons)
+
+    # TODO: Do we need to support multiple seasons?
+    active_season = first(active_seasons, always(True))
+    active_week = (
+        week_service.get_current_week(active_season.id) if active_season else None
+    )
+
+    picks = (
+        pick_service.get_picked_teams(user_id, active_season.id)
+        if active_season
+        else []
+    )
+
+    pick = first(picks, lambda p: p[0] == active_week.number)
+    picked_team = pick[1] if pick else None
+
+    previously_picked_teams = [p[1] for p in picks if p[0] != active_week.number]
+
+    week_status = week_service.get_status(active_week) if active_week else None
+    games = game_service.get_by_week(active_week.id) if active_week else None
+
+    if not form:
+        form = PickForm()
+        form.team_id.choices = [
+            (team.id, team.abbreviation) for team in team_service.get_all()
+        ]
+        form.team_id.data = picked_team
+        form.season_id.data = active_season.id if active_season else None
+        form.week_id.data = active_week.id if active_week else None
+
+    model = PickViewModel(
+        active_season, active_week, week_status, previously_picked_teams, games, form
+    )
+
+    return render_template("pages/home/pick/pick.html", model=model)
+
+
+@home.get("/pick")
+def get_pick():
+    return pick()
+
+
+@home.post("/pick")
+def post_pick():
+    form = PickForm()
+
+    all_teams = team_service.get_all()
+    form.team_id.choices = [(team.id, team.abbreviation) for team in all_teams]
+
+    def handle_error(msg: str | None = None):
+        if msg:
+            flash(msg)
+        return pick(form)
+
+    if not form.validate():
+        return handle_error()
+
+    user_id = current_user.id
+    picked_team = form.team_id.data
+    season_id = form.season_id.data
+    week_id = form.week_id.data
+
+    previously_picked_ids = pick_service.get_picked_teams(user_id, season_id)
+    if picked_team in previously_picked_ids:
+        return handle_error(
+            "Cannot pick a team that has already been picked this season"
+        )
+
+    if season_service.is_complete(season_id):
+        return handle_error("Season has already completed")
+
+    current_week = week_service.get_current_week(season_id)
+
+    if not current_week or current_week.id != week_id:
+        return handle_error("Picks can only be entered for the current week")
+
+    if week_service.get_status_by_id(week_id) != GameState.PREGAME:
+        return handle_error("Week has already started; picks can no longer be entered")
+
+    pick_service.make_pick(user_id, week_id, picked_team)
+
+    pick_msg = __get_pick_message(
+        current_app, first(all_teams, lambda team: team.id == picked_team)
+    )
+    flash(pick_msg)
+    return pick(form)

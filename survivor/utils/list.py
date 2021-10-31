@@ -56,15 +56,15 @@ def append(lst, elem):
     return lst + [elem]
 
 
-def map_list(fun: Callable[[T], U], lst: list[T]) -> list[U]:
+def map_list(fun: Callable[[T], U], lst: list[T]):
     return list(map(fun, lst))
 
 
-def filter_list(predicate, lst):
+def filter_list(predicate: Callable[[T], bool], lst: list[T]):
     return list(filter(predicate, lst))
 
 
-def first(lst, predicate, default=None):
+def first(lst: list[T], predicate: Callable[[T], bool], default: T | None = None):
     return next((elem for elem in lst if predicate(elem)), default)
 
 

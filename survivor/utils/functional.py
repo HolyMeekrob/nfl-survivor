@@ -1,8 +1,19 @@
 from functools import reduce
+from typing import TypeVar
+
+T = TypeVar("T")
 
 
 def identity(x):
     return x
+
+
+def always(result: T):
+    return lambda x: result
+
+
+def complement(f):
+    return lambda x: not f(x)
 
 
 def all_true(*funcs):

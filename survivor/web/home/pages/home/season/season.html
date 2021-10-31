@@ -1,6 +1,10 @@
 {% extends 'base.html' %}
 
-{% block title %} {% block header %}Season {{ model.season.year }}{% endblock %} {% endblock %}
+{% block title %}
+{% block header %}
+Season {{ model.season.year }}
+{% endblock %}
+{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='home/season.css') }}">

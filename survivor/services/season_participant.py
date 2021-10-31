@@ -1,6 +1,7 @@
 from sqlite3 import Cursor
 from uuid import UUID
 
+from survivor.data import Season
 from survivor.services import season as season_service
 from survivor.utils.db import wrap_operation
 
@@ -43,3 +44,24 @@ def join_season(season_id: int, user_id: UUID, *, cursor: Cursor = None):
     )
 
     return cursor.lastrowid
+
+
+@wrap_operation()
+def get_seasons_for_user(user_id: UUID, *, cursor: Cursor = None) -> list[Season]:
+    cursor.execute(
+        """
+        SELECT
+            season.*
+        FROM
+            season_participant sp
+        INNER JOIN
+            season on sp.season_id = season.id
+        WHERE
+            sp.user_id = :user_id
+        """,
+        {"user_id": user_id},
+    )
+
+    raw_seasons = cursor.fetchall()
+
+    return [Season.to_season(season) for season in raw_seasons]
