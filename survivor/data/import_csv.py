@@ -1,5 +1,6 @@
 import click
 import csv
+import itertools
 import os
 import uuid
 
@@ -103,7 +104,8 @@ def create_pick(user_id: uuid.UUID, week_id: int, team_id: int, cursor: Cursor):
             pick
                 (week_id, user_id, team_id)
             VALUES
-                (:week_id, :user_id, :team_id);
+                (:week_id, :user_id, :team_id)
+            ON CONFLICT DO NOTHING;
         """,
         {"week_id": week_id, "user_id": user_id, "team_id": team_id},
     )
@@ -119,6 +121,9 @@ def import_picks(
     cursor: Cursor,
 ):
     for (i, team) in enumerate(picks):
+        if team not in team_ids:
+            continue
+
         team_id = team_ids[team]
         create_pick(user_id, week_ids[i], team_id, cursor)
 
@@ -130,7 +135,9 @@ def import_command():
 
     path = os.path.join(current_app.instance_path, filename)
     with open(path, newline="") as csvfile:
-        rows = csv.DictReader(csvfile, fieldnames=["name"], restkey="picks")
+        rows = csv.DictReader(
+            csvfile, fieldnames=["rank", "name", "wins", "losses"], restkey="picks"
+        )
 
         db = get_db()
         cursor = db.cursor()
@@ -138,7 +145,7 @@ def import_command():
         team_ids = get_team_ids(cursor)
         week_ids = get_week_ids(cursor)
 
-        for row in rows:
+        for row in itertools.islice(rows, 1, None):
             id = import_user(row["name"], cursor)
             import_picks(id, team_ids, week_ids, row["picks"], cursor)
 
