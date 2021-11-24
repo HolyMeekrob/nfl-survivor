@@ -68,6 +68,10 @@ def first(lst: list[T], predicate: Callable[[T], bool], default: T | None = None
     return next((elem for elem in lst if predicate(elem)), default)
 
 
+def last(lst: list[T], predicate: Callable[[T], bool], default: T | None = None):
+    return first(reversed(lst), predicate, default)
+
+
 def groupby(lst: list[T], key: Callable[[T], U]) -> dict[U, list[T]]:
     def add_to_dict(groups: dict, elem):
         elem_key = key(elem)

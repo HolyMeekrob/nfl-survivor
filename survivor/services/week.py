@@ -1,3 +1,4 @@
+from itertools import takewhile
 from operator import attrgetter
 from sqlite3 import Cursor
 
@@ -52,6 +53,16 @@ def get_current_week(season_id, *, cursor: Cursor = None):
         return get_status(week, cursor=cursor) != GameState.COMPLETE
 
     return first(weeks, is_incomplete)
+
+
+@wrap_operation()
+def get_completed_weeks(season_id, *, cursor: Cursor = None) -> list[Week]:
+    weeks = get_by_season(season_id, cursor=cursor)
+
+    def is_complete(week: Week):
+        return get_status(week, cursor=cursor) == GameState.COMPLETE
+
+    return list(takewhile(is_complete, weeks))
 
 
 @wrap_operation()
