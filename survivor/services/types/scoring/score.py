@@ -5,18 +5,24 @@ from operator import neg
 from survivor.data import User, Week
 from survivor.utils.list import append, indexes, map_list
 
-from .pick_result import _PickResult as PickResult
+from .pick_result import _PickResult as PickResult, _PickOutcome as PickOutcome
 
 
 class Score:
     user: User | None
     teams: list[str]
     misses: list[int]
+    completed_week_count: int
     max_strikes: int
 
     def __init__(
-        self, results: list[PickResult], weeks: list[Week], max_strikes: int
+        self,
+        results: list[PickResult],
+        weeks: list[Week],
+        completed_week_count: int,
+        max_strikes: int,
     ) -> None:
+        self.completed_week_count = completed_week_count
         self.max_strikes = max_strikes
 
         if not results:
@@ -34,11 +40,11 @@ class Score:
             def get_team_name(pick: PickResult) -> str:
                 return "N/A" if pick.team is None else pick.team.abbreviation
 
-            def get_is_correct(pick: PickResult) -> bool:
-                return pick.is_correct
+            def get_outcome(pick: PickResult) -> PickOutcome:
+                return pick.outcome
 
-            def get_empty_pick(week) -> PickResult:
-                return PickResult(get_user(), None, week, False)
+            def get_missing_pick(week) -> PickResult:
+                return PickResult(get_user(), None, week, PickOutcome.INCORRECT)
 
             def fill_gaps(picks: list[PickResult]) -> list[PickResult]:
                 def fill(
@@ -47,7 +53,23 @@ class Score:
                 ) -> tuple[list[PickResult], list[PickResult], int]:
                     (remaining_picks, all_picks, remaining_strikes) = aggregate
 
+                    # If the user has used all their strikes, they won't have any more picks
                     if remaining_strikes == 0:
+                        return aggregate
+
+                    is_incomplete_week = week.number > completed_week_count
+
+                    # If it's an incomplete week and there are no more picks
+                    # then we're done
+                    if is_incomplete_week and not remaining_picks:
+                        return aggregate
+
+                    # If it's an incomplete week and the next pick isn't for this
+                    # week, then continue
+                    if (
+                        is_incomplete_week
+                        and remaining_picks[0].week.number != week.number
+                    ):
                         return aggregate
 
                     # If there are no more picks to choose from,
@@ -59,14 +81,14 @@ class Score:
                     ):
                         return (
                             remaining_picks,
-                            append(all_picks, get_empty_pick(week)),
+                            append(all_picks, get_missing_pick(week)),
                             remaining_strikes - 1,
                         )
 
                     updated_strikes = (
-                        remaining_strikes
-                        if remaining_picks[0].is_correct
-                        else remaining_strikes - 1
+                        remaining_strikes - 1
+                        if get_outcome(remaining_picks[0]) == PickOutcome.INCORRECT
+                        else remaining_strikes
                     )
 
                     return (
@@ -81,7 +103,9 @@ class Score:
 
             self.user = get_user()
             self.teams = map_list(get_team_name, sorted_results)
-            self.misses = indexes(map_list(get_is_correct, sorted_results), False, 1)
+            self.misses = indexes(
+                map_list(get_outcome, sorted_results), PickOutcome.INCORRECT, 1
+            )
 
     def __get_comparable(self: Score) -> tuple[int, list[int]]:
         below_max_strikes = len(self.misses) < self.max_strikes
@@ -103,3 +127,8 @@ class Score:
 
     def is_eliminated(self) -> bool:
         return len(self.misses) > 2
+
+    def is_correct(self, week_number: int) -> bool | None:
+        if week_number > self.completed_week_count:
+            return None
+        return week_number not in self.misses

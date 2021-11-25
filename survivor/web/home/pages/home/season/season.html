@@ -32,7 +32,8 @@ Season {{ model.season.year }}
 				{{ standing[0].user.name }}
 			</td>
 			{% for team in standing[0].teams %}
-			<td class={{ "missed" if loop.index in standing[0].misses else "nailed" }}>
+			{% set is_correct = standing[0].is_correct(loop.index) %}
+			<td class={{ "nailed" if is_correct==True else ("missed" if is_correct==False) }}>
 				{{ team }}
 			</td>
 			{% endfor %}
