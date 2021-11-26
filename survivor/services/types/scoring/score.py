@@ -104,7 +104,9 @@ class Score:
             self.user = get_user()
             self.teams = map_list(get_team_name, sorted_results)
             self.misses = indexes(
-                map_list(get_outcome, sorted_results), PickOutcome.INCORRECT, 1
+                map_list(get_outcome, sorted_results[:completed_week_count]),
+                PickOutcome.INCORRECT,
+                1,
             )
 
     def __get_comparable(self: Score) -> tuple[int, list[int]]:
