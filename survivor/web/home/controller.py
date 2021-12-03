@@ -7,6 +7,7 @@ from survivor.data import GameState, InvitationStatus, Season, Team
 from survivor.services import (
     game as game_service,
     pick as pick_service,
+    rules as rules_service,
     scoring as scoring_service,
     season as season_service,
     season_invitation as invitation_service,
@@ -14,8 +15,8 @@ from survivor.services import (
     team as team_service,
     week as week_service,
 )
-from survivor.utils.functional import all_true, always
-from survivor.utils.list import filter_list, first
+from survivor.utils.functional import all_true, always, identity
+from survivor.utils.list import filter_list, first, groupby
 from survivor.web.home.pages.home.pick.pick import PickViewModel
 
 from .pages import MyInvitationsViewModel
@@ -95,6 +96,7 @@ def pick(form: PickForm = None):
     active_week = (
         week_service.get_current_week(active_season.id) if active_season else None
     )
+    rules = rules_service.get(active_season.id)
 
     picks = (
         pick_service.get_picked_teams(user_id, active_season.id)
@@ -106,8 +108,13 @@ def pick(form: PickForm = None):
     picked_team = pick[1] if pick else None
 
     previously_picked_teams = [p[1] for p in picks if p[0] != active_week.number]
+    pick_counts = groupby(previously_picked_teams, identity)
+    ineligible_teams = [
+        team_id
+        for team_id in pick_counts
+        if len(pick_counts[team_id]) >= rules.max_team_picks
+    ]
 
-    week_status = week_service.get_status(active_week) if active_week else None
     games = game_service.get_by_week(active_week.id) if active_week else None
 
     if not form:
@@ -119,8 +126,12 @@ def pick(form: PickForm = None):
         form.season_id.data = active_season.id if active_season else None
         form.week_id.data = active_week.id if active_week else None
 
+    can_enter_pick = pick_service.can_enter_pick(
+        rules.pick_cutoff, active_week.id, current_user
+    )
+
     model = PickViewModel(
-        active_season, active_week, week_status, previously_picked_teams, games, form
+        active_season, active_week, can_enter_pick, ineligible_teams, games, form
     )
 
     return render_template("pages/home/pick/pick.html", model=model)

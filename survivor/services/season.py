@@ -5,6 +5,7 @@ from survivor.api import get_season as fetch_season, get_week as fetch_week
 from survivor.data import (
     GameState,
     InvitationStatus,
+    Rules,
     Season,
     SeasonInvitation,
     SeasonType,
@@ -15,6 +16,7 @@ from survivor.utils.functional import complement
 from survivor.utils.list import flatten
 
 from . import game as game_service
+from . import rules as rules_service
 from . import week as week_service
 
 
@@ -35,6 +37,8 @@ def create(year, *, cursor=None):
 
     id = cursor.lastrowid
 
+    rules_service.upsert(Rules(id=id), cursor=Cursor)
+
     weeks = fetch_season(year)
 
     for week in weeks:
@@ -45,7 +49,7 @@ def create(year, *, cursor=None):
 
 @wrap_operation(is_write=True)
 def update_games(id, *, cursor=None):
-    def update_completed_weeks(year, weeks):
+    def update_completed_weeks(year, weeksh):
         if not weeks:
             return []
 
@@ -79,15 +83,15 @@ def update_games(id, *, cursor=None):
 
 
 @wrap_operation()
-def get(id: int, *, cursor: Cursor = None) -> Season:
-    cursor.execute("SELECT * FROM season WHERE id = :id LIMIT 1;", {"id": id})
+def get(season_id: int, *, cursor: Cursor = None) -> Season:
+    cursor.execute("SELECT * FROM season WHERE id = :id LIMIT 1;", {"id": season_id})
 
     season_raw = cursor.fetchone()
     return Season.to_season(season_raw)
 
 
 @wrap_operation()
-def get_participants(id, *, cursor=None):
+def get_participants(season_id: int, *, cursor: Cursor = None):
     cursor.execute(
         """
         SELECT
@@ -99,7 +103,7 @@ def get_participants(id, *, cursor=None):
         WHERE
             sp.season_id = :season_id;
         """,
-        {"season_id": id},
+        {"season_id": season_id},
     )
 
     users_raw = cursor.fetchall()
@@ -108,8 +112,8 @@ def get_participants(id, *, cursor=None):
 
 
 @wrap_operation()
-def get_status(id: int, *, cursor=None):
-    weeks = week_service.get_by_season(id, cursor=cursor)
+def get_status(season_id: int, *, cursor=None):
+    weeks = week_service.get_by_season(season_id, cursor=cursor)
     statuses = [week_service.get_status(week, cursor=cursor) for week in weeks]
 
     all_have_status = lambda status: all(
@@ -125,8 +129,8 @@ def get_status(id: int, *, cursor=None):
     return GameState.IN_PROGRESS
 
 
-def is_complete(id: int):
-    return get_status(id) == GameState.COMPLETE
+def is_complete(season_id: int):
+    return get_status(season_id) == GameState.COMPLETE
 
 
 is_incomplete = complement(is_complete)

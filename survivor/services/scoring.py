@@ -10,22 +10,35 @@ from .types.scoring.pick_result import (
     _PickResult as PickResult,
     _PickOutcome as PickOutcome,
 )
+from .rules import get as get_rules
 from .types.scoring.score import Score
 from .types.scoring.standings import get_standings as get_sorted_standings
 from .week import get_by_season, get_current_week
-
-# TODO: This needs to come from the season (probably need a new rules object)
-def __get_max_strikes():
-    return 3
+from .week_timer import is_week_timer_active
 
 
 @wrap_operation()
 def get_standings(season_id: int, *, cursor: Cursor = None):
     weeks = get_by_season(season_id, cursor=cursor)
-    completed_weeks = get_current_week(season_id, cursor=cursor).number - 1
 
     if not weeks:
         return []
+
+    completed_weeks = get_current_week(season_id, cursor=cursor).number - 1
+    rules = get_rules(season_id, cursor=cursor)
+
+    # Only show current week if the reveal timer is expired
+    weeks = (
+        weeks[:completed_weeks]
+        if is_week_timer_active(weeks[completed_weeks].id, rules.pick_reveal)
+        else weeks[: completed_weeks + 1]
+    )
+
+    weeks = [
+        week
+        for i, week in enumerate(weeks)
+        if not is_week_timer_active(week.id, rules.pick_reveal, cursor=cursor)
+    ]
 
     def prepend(prefix):
         return lambda s: f"{prefix}{s} AS '{prefix}{s}'"
@@ -89,7 +102,7 @@ def get_standings(season_id: int, *, cursor: Cursor = None):
         return pick.user.id
 
     def get_score(user_picks: list[PickResult]) -> Score:
-        return Score(user_picks, weeks, completed_weeks, __get_max_strikes())
+        return Score(user_picks, weeks, completed_weeks, rules.max_strikes)
 
     grouped_picks = list(groupby(picks, get_user_id).values())
     scores = map_list(get_score, grouped_picks)

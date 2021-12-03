@@ -4,6 +4,7 @@
 	const getSeasonId = () => parseInt(document.getElementById('season-id').value, 10);
 
 	const getUpdateGamesForm = () => document.getElementById('update-games');
+	const getUpdateRulesForm = () => document.getElementById('update-rules');
 	const getInviteNewUserForm = () => document.getElementById('invite-new-user');
 	const getInviteButtons = () => document.querySelectorAll('[data-action="invite"]');
 
@@ -21,6 +22,19 @@
 		e.preventDefault();
 
 		const form = getUpdateGamesForm();
+		const data = new FormData(form);
+		const request = new Request(form.action, {
+			method: form.method,
+			body: data,
+		});
+
+		updateFromServer(request);
+	};
+
+	const updateRules = (e) => {
+		e.preventDefault();
+
+		const form = getUpdateRulesForm();
 		const data = new FormData(form);
 		const request = new Request(form.action, {
 			method: form.method,
@@ -64,8 +78,15 @@
 		const updateGamesForm = getUpdateGamesForm();
 		updateGamesForm.addEventListener('submit', updateGames);
 
+		const updateRulesForm = getUpdateRulesForm();
+		if (updateRulesForm) {
+			updateRulesForm.addEventListener('submit', updateRules);
+		}
+
 		const inviteNewUserForm = getInviteNewUserForm();
-		inviteNewUserForm.addEventListener('submit', inviteNewUser);
+		if (inviteNewUserForm) {
+			inviteNewUserForm.addEventListener('submit', inviteNewUser);
+		}
 
 		for (const button of getInviteButtons()) {
 			button.addEventListener('click', sendInvite);

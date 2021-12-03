@@ -2,15 +2,14 @@ from itertools import takewhile
 from operator import attrgetter
 from sqlite3 import Cursor
 
-from survivor.data import Week
-from survivor.data.models.game import GameState
+from survivor.data import GameState, Week
 from survivor.utils.db import wrap_operation
 from survivor.utils.list import first
 from . import game as game_service
 
 
 @wrap_operation(is_write=True)
-def create(season_id, week, *, cursor=None):
+def create(season_id: int, week: Week, *, cursor: Cursor = None) -> int:
     cursor.execute(
         "INSERT INTO week (season_id, number) VALUES(:season_id, :number);",
         {"season_id": season_id, "number": week.number},
@@ -25,7 +24,15 @@ def create(season_id, week, *, cursor=None):
 
 
 @wrap_operation()
-def get_by_season(season_id, *, cursor=None):
+def get(week_id: int, *, cursor: Cursor = None):
+    cursor.execute("SELECT * FROM week WHERE id = :id", {"id": week_id})
+
+    week_raw = cursor.fetchone()
+    return Week.to_week(week_raw)
+
+
+@wrap_operation()
+def get_by_season(season_id: int, *, cursor: Cursor = None) -> list[Week]:
     cursor.execute(
         """
         SELECT
@@ -46,7 +53,7 @@ def get_by_season(season_id, *, cursor=None):
 
 
 @wrap_operation()
-def get_current_week(season_id, *, cursor: Cursor = None):
+def get_current_week(season_id: int, *, cursor: Cursor = None):
     weeks = get_by_season(season_id, cursor=cursor)
 
     def is_incomplete(week: Week):
@@ -56,7 +63,7 @@ def get_current_week(season_id, *, cursor: Cursor = None):
 
 
 @wrap_operation()
-def get_completed_weeks(season_id, *, cursor: Cursor = None) -> list[Week]:
+def get_completed_weeks(season_id, *, cursor: Cursor = None):
     weeks = get_by_season(season_id, cursor=cursor)
 
     def is_complete(week: Week):
@@ -73,4 +80,4 @@ def get_status_by_id(week_id: int, *, cursor: Cursor = None):
 
 @wrap_operation()
 def get_status(week: Week, *, cursor: Cursor = None):
-    return get_status_by_id(week.id)
+    return get_status_by_id(week.id, cursor=cursor)

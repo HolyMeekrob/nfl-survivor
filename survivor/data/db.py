@@ -6,8 +6,10 @@ import click
 from flask import current_app, g
 from flask.cli import with_appcontext
 
+from survivor.utils.list import map_list
+
 from .migrate import migrate
-from .models import GameState, InvitationStatus
+from .models import GameState, InvitationStatus, WeekTimer
 
 
 def __get_db_location(app):
@@ -66,6 +68,13 @@ def __register_uuid():
     sqlite3.register_adapter(uuid.UUID, lambda u: u.bytes_le)
 
 
+def __register_real_array():
+    sqlite3.register_converter(
+        "REAL_ARRAY", lambda arr_bytes: map_list(float, arr_bytes.decode().split(","))
+    )
+    sqlite3.register_adapter(list, lambda lst: ",".join(map(str, lst)))
+
+
 def __register_enum(enum_type, sql_type):
     sqlite3.register_converter(
         sql_type,
@@ -79,8 +88,10 @@ def __register_enum(enum_type, sql_type):
 
 def init(app):
     __register_uuid()
+    __register_real_array()
     __register_enum(GameState, "GAME_STATE")
     __register_enum(InvitationStatus, "INVITATION_STATUS")
+    __register_enum(WeekTimer, "WEEK_TIMER")
 
     app.teardown_appcontext(close_db)
     app.cli.add_command(migrate_db_command)

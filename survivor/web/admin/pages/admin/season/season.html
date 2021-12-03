@@ -11,21 +11,75 @@
 <div>
 	<h2>Season {{model.season.year}}</h2>
 	<h3>{{ model.status.name }}</h3>
-	{% for week in model.weeks %}
-	<div>{{week.number}}</div>
-	{% endfor %}
 
 	{% if model.status.name != "COMPLETE" %}
-	<div>
-		<form id="update-games" method="post" action="updateGames">
-			{{ model.update_games_form.csrf_token }}
-			{{ model.update_games_form.hidden_tag() }}
+	<form id="update-games" method="post" action="updateGames">
+		{{ model.update_games_form.csrf_token }}
+		{{ model.update_games_form.hidden_tag() }}
 
-			<button type="submit">Update games</button>
-		</form>
-	</div>
+		<button type="submit">Update games</button>
+	</form>
 	{% endif %}
 
+	<h3>Rules</h3>
+	<form id="update-rules" method="post" action="updateRules">
+		{{ model.update_rules_form.csrf_token }}
+		{{ model.update_rules_form.hidden_tag() }}
+
+		{% set is_read_only = not model.can_edit_rules() %}
+
+		<div>
+			{{ model.update_rules_form.max_strikes.label }}
+			{{ model.update_rules_form.max_strikes(disabled=is_read_only) }}
+			{% for error in model.update_rules_form.max_strikes.errors %}
+			<div class="error">{{ error }}</div>
+			{% endfor %}
+		</div>
+
+		<div>
+			{{ model.update_rules_form.max_team_picks.label }}
+			{{ model.update_rules_form.max_team_picks(disabled=is_read_only) }}
+			{% for error in model.update_rules_form.max_team_picks.errors %}
+			<div class="error">{{ error }}</div>
+			{% endfor %}
+		</div>
+
+		<div>
+			{{ model.update_rules_form.pick_cutoff.label }}
+			{{ model.update_rules_form.pick_cutoff(disabled=is_read_only) }}
+		</div>
+
+		<div>
+			{{ model.update_rules_form.pick_reveal.label }}
+			{{ model.update_rules_form.pick_reveal(disabled=is_read_only) }}
+		</div>
+
+		<div>
+			{{ model.update_rules_form.entry_fee.label }}
+			{{ model.update_rules_form.entry_fee(disabled=is_read_only) }}
+			{% for error in model.update_rules_form.entry_fee.errors %}
+			<div class="error">{{ error }}</div>
+			{% endfor %}
+		</div>
+
+		<div>
+			{{ model.update_rules_form.winnings.label }}
+			{{ model.update_rules_form.winnings(disabled=is_read_only) }}
+			{% for error in model.update_rules_form.winnings.errors %}
+			<div class="error">{{ error }}</div>
+			{% endfor %}
+		</div>
+
+		<div>
+			<button type="submit">Update rules</button>
+		</div>
+	</form>
+
+	{% if model.participants %}
+	<h3>Participants</h3>
+	{% else %}
+	<h3>No participants</h3>
+	{% endif %}
 	{% for participant in model.participants %}
 	<div>{{ participant.name }}</div>
 	{% endfor %}

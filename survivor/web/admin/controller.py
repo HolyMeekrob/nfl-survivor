@@ -12,8 +12,9 @@ from flask import (
 )
 from flask_login import current_user
 
-from survivor.data import User
+from survivor.data import Rules, User
 from survivor.services import (
+    rules as rules_service,
     season as season_service,
     week as week_service,
     user as user_service,
@@ -22,7 +23,12 @@ from survivor.utils.email import send_email
 from survivor.utils.security import get_invitation_code
 
 from .emails import SendInvitationEmailModel
-from .pages import InviteNewUserForm, SeasonViewModel, UpdateSeasonGamesForm
+from .pages import (
+    InviteNewUserForm,
+    SeasonViewModel,
+    UpdateRulesForm,
+    UpdateSeasonGamesForm,
+)
 
 admin = Blueprint("admin", __name__, url_prefix="/admin", template_folder=".")
 
@@ -38,7 +44,9 @@ def seasons():
 
 
 @admin.get("/season/<int:id>")
-def season(id, *, update_games_form=None, invite_new_user_form=None):
+def season(
+    id, *, update_games_form=None, update_rules_form=None, invite_new_user_form=None
+):
     season = season_service.get(id)
     users = user_service.get_all()
     participants = season_service.get_participants(id)
@@ -60,6 +68,22 @@ def season(id, *, update_games_form=None, invite_new_user_form=None):
     update_games_form = update_games_form or UpdateSeasonGamesForm()
     update_games_form.id.data = id
 
+    def get_rules_form():
+        rules = rules_service.get(id)
+        form = UpdateRulesForm()
+        form.id.data = id
+        form.max_strikes.data = rules.max_strikes
+        form.max_team_picks.data = rules.max_team_picks
+        form.pick_cutoff.data = rules.pick_cutoff
+        form.pick_reveal.data = rules.pick_reveal
+        form.entry_fee.data = rules.entry_fee
+        form.winnings.data = rules.winnings
+
+        return form
+
+    update_rules_form = update_rules_form or get_rules_form()
+    update_rules_form.id.data = id
+
     invite_new_user_form = invite_new_user_form or InviteNewUserForm()
     invite_new_user_form.id.data = id
 
@@ -70,6 +94,7 @@ def season(id, *, update_games_form=None, invite_new_user_form=None):
         participants,
         non_participants,
         update_games_form,
+        update_rules_form,
         invite_new_user_form,
     )
 
@@ -98,7 +123,7 @@ def update_games():
     form = UpdateSeasonGamesForm()
     id = int(form.id.data)
 
-    if not form.validate():
+    if not form.validate_on_submit():
         return season(id, update_games_form=form)
 
     updated_games = season_service.update_games(id)
@@ -109,6 +134,27 @@ def update_games():
         flash("No games needed updating")
 
     return season(id, update_games_form=form)
+
+
+@admin.post("/season/updateRules")
+def update_rules():
+    form = UpdateRulesForm()
+    id = int(form.id.data)
+
+    if form.validate():
+        rules = Rules(
+            id=id,
+            max_strikes=form.max_strikes.data,
+            max_team_picks=form.max_team_picks.data,
+            pick_cutoff=form.pick_cutoff.data,
+            pick_reveal=form.pick_reveal.data,
+            entry_fee=float(form.entry_fee.data),
+            winnings=form.winnings.data,
+        )
+        rules_service.upsert(rules)
+        flash("Rules updated")
+
+    return season(id, update_rules_form=form)
 
 
 def __create_invitation(season_id, user_id, is_existing_user):

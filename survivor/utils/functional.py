@@ -1,15 +1,15 @@
 from functools import reduce
-from typing import TypeVar
+from typing import Any, Callable, TypeVar
 
 T = TypeVar("T")
 
 
-def identity(x):
+def identity(x: Any):
     return x
 
 
-def always(result: T):
-    return lambda x: result
+def always(result: T) -> Callable[[], T]:
+    return lambda: result
 
 
 def complement(f):

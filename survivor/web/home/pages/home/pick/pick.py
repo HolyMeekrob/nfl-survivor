@@ -13,15 +13,14 @@ class PickViewModel:
         self,
         season: Season,
         week: Week,
-        week_status: GameState,
+        can_enter_pick: bool,
         ineligible_teams: list[int],
         games: list[Game],
         form: PickForm,
     ):
         self.season = season
-        self.week_status = week_status
         self.week = week
-        self.can_enter_pick = week_status == GameState.PREGAME
+        self.can_enter_pick = can_enter_pick
         self.ineligible_teams = ineligible_teams
         self.games = games
         self.form = form

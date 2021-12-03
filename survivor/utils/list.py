@@ -1,3 +1,4 @@
+from builtins import all as all_true
 from functools import reduce
 from itertools import chain
 from typing import Callable, TypeVar
@@ -45,7 +46,7 @@ def any(lst, predicate=identity):
 
 
 def all(lst, predicate=identity):
-    return all([predicate(elem) for elem in lst])
+    return all_true([predicate(elem) for elem in lst])
 
 
 def count(lst, predicate=identity):

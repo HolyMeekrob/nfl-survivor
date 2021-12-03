@@ -128,7 +128,7 @@ class Score:
         return ", ".join([str(week + 1) for week in self.misses])
 
     def is_eliminated(self) -> bool:
-        return len(self.misses) > 2
+        return len(self.misses) >= self.max_strikes
 
     def is_correct(self, week_number: int) -> bool | None:
         if week_number > self.completed_week_count:
