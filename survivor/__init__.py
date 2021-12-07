@@ -1,11 +1,38 @@
+from datetime import datetime
 import os
 
 from flask import Flask, redirect, request, url_for
+from flask_apscheduler import APScheduler
 from flask_login import LoginManager, current_user
 
 from .data import db, import_csv, User
-from .services import user as user_service
+from .services import season as season_service, user as user_service
 from .web import admin, auth, home
+
+
+def __start_scheduled_tasks(app: Flask):
+    # schedule tasks
+    scheduler = APScheduler()
+
+    @scheduler.task(
+        "interval",
+        id="update_season",
+        name="Updates the current season's games from the API",
+        coalesce=True,
+        max_instances=1,
+        misfire_grace_time=int(app.config["UPDATE_FROM_API_INTERVAL_SECONDS"] / 2),
+        seconds=app.config["UPDATE_FROM_API_INTERVAL_SECONDS"],
+    )
+    def update_season():
+        with scheduler.app.app_context():
+            year = datetime.utcnow().year
+            seasons = season_service.get_by_year(year)
+
+            if seasons:
+                season_service.update_games(seasons[0].id)
+
+    scheduler.init_app(app)
+    scheduler.start()
 
 
 def create_app(test_config=None):
@@ -66,6 +93,9 @@ def create_app(test_config=None):
     app.register_blueprint(admin)
     app.register_blueprint(auth)
     app.register_blueprint(home)
+
+    if app.env == "production":
+        __start_scheduled_tasks(app)
 
     # ensure config users
     db_conn = db.get_db(app)

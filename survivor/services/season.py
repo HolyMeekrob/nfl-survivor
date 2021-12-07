@@ -28,6 +28,14 @@ def get_all(*, cursor=None):
     return [Season.to_season(season) for season in seasons_raw]
 
 
+@wrap_operation()
+def get_by_year(year: int, *, cursor: Cursor = None):
+    cursor.execute("SELECT * FROM season WHERE year = :year;", {"year": year})
+    seasons_raw = cursor.fetchall()
+
+    return [Season.to_season(season) for season in seasons_raw]
+
+
 @wrap_operation(is_write=True)
 def create(year, *, cursor=None):
     cursor.execute(
@@ -49,7 +57,7 @@ def create(year, *, cursor=None):
 
 @wrap_operation(is_write=True)
 def update_games(id, *, cursor=None):
-    def update_completed_weeks(year, weeksh):
+    def update_completed_weeks(year, weeks):
         if not weeks:
             return []
 
