@@ -1,4 +1,3 @@
-from datetime import datetime
 import uuid
 from flask import (
     Blueprint,
@@ -19,6 +18,7 @@ from survivor.services import (
     week as week_service,
     user as user_service,
 )
+from survivor.utils.datetime import utcnow
 from survivor.utils.email import send_email
 from survivor.utils.security import get_invitation_code
 
@@ -106,7 +106,7 @@ def season(
 
 @admin.post("/season")
 def create_season():
-    year = datetime.utcnow().year
+    year = utcnow().year
 
     try:
         id = season_service.create(year)

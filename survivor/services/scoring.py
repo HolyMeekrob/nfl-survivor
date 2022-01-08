@@ -36,7 +36,7 @@ def get_standings(season_id: int, *, cursor: Cursor = None):
 
     weeks = [
         week
-        for i, week in enumerate(weeks)
+        for week in weeks
         if not is_week_timer_active(week.id, rules.pick_reveal, cursor=cursor)
     ]
 

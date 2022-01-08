@@ -1,34 +1,28 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from sqlite3 import Cursor
 from typing import Callable
 
 from survivor.data import Game, GameState, WeekTimer
+from survivor.utils.datetime import utcnow
 from survivor.utils.db import wrap_operation
-from survivor.utils.list import all, groupby
+from survivor.utils.list import groupby
 
-from . import game as game_service
-from . import week as week_service
-
-
-def none_have_started(games: list[Game]) -> bool:
-    return all(games, lambda game: game.state == GameState.PREGAME)
+from . import game as game_service, week as week_service
 
 
 def is_sunday(kickoff: datetime):
     return kickoff.isoweekday() == 7
 
 
-def sunday_has_not_started(games: list[Game]) -> bool:
-    earliest_sunday = sorted(
-        [game.kickoff for game in games if is_sunday(game.kickoff)],
-    )
-
-    now = datetime.now(timezone.utc)
-
-    return earliest_sunday and earliest_sunday[0] > now
+def get_first_game_kickoff(games: list[Game]) -> datetime:
+    return sorted([game.kickoff for game in games])[0]
 
 
-def sunday_batch_has_not_started(games: list[Game]) -> bool:
+def get_first_sunday_kickoff(games: list[Game]) -> datetime:
+    return sorted([game.kickoff for game in games if is_sunday(game.kickoff)])[0]
+
+
+def get_first_batch_sunday_kickoff(games: list[Game]) -> datetime:
     groups = groupby(games, lambda game: game.kickoff)
     sunday_batches = sorted(
         [
@@ -38,24 +32,18 @@ def sunday_batch_has_not_started(games: list[Game]) -> bool:
         ]
     )
 
-    now = datetime.now(timezone.utc)
-
-    return sunday_batches and sunday_batches[0] > now
+    return sunday_batches[0] if sunday_batches else None
 
 
-def any_have_not_started(games: list[Game]) -> bool:
-    last_kickoff = sorted([game.kickoff for game in games], reverse=True)[0]
-
-    now = datetime.now(timezone.utc)
-
-    return last_kickoff > now
+def get_last_game_kickoff(games: list[Game]) -> datetime:
+    return sorted([game.kickoff for game in games], reverse=True)[0]
 
 
-timer_policies: dict[WeekTimer, Callable[[list[Game]], bool]] = {
-    WeekTimer.FIRST_GAME: none_have_started,
-    WeekTimer.FIRST_GAME_SUNDAY: sunday_has_not_started,
-    WeekTimer.FIRST_BATCH_SUNDAY: sunday_batch_has_not_started,
-    WeekTimer.GAME_START: any_have_not_started,
+timer_deadlines: dict[WeekTimer, Callable[[list[Game]], datetime]] = {
+    WeekTimer.FIRST_GAME: get_first_game_kickoff,
+    WeekTimer.FIRST_GAME_SUNDAY: get_first_sunday_kickoff,
+    WeekTimer.FIRST_BATCH_SUNDAY: get_first_batch_sunday_kickoff,
+    WeekTimer.GAME_START: get_last_game_kickoff,
 }
 
 
@@ -65,10 +53,22 @@ def is_week_timer_active(week_id: int, week_timer: WeekTimer, *, cursor: Cursor 
     if status == GameState.COMPLETE:
         return False
 
-    week = week_service.get(week_id, cursor=cursor)
+    games = game_service.get_by_week(week_id, cursor=cursor)
 
-    if not week:
+    if not games:
         return False
 
+    now = utcnow()
+    deadline = timer_deadlines[week_timer](games)
+
+    return deadline and deadline > now
+
+
+@wrap_operation()
+def get_deadline(week_id: int, week_timer: WeekTimer, *, cursor: Cursor):
     games = game_service.get_by_week(week_id, cursor=cursor)
-    return timer_policies[week_timer](games)
+
+    if not games:
+        return None
+
+    return timer_deadlines[week_timer](games)

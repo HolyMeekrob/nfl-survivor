@@ -22,7 +22,7 @@ from . import week as week_service
 
 @wrap_operation()
 def get_all(*, cursor=None):
-    cursor.execute("SELECT * FROM season;")
+    cursor.execute("SELECT * FROM season ORDER BY year;")
     seasons_raw = cursor.fetchall()
 
     return [Season.to_season(season) for season in seasons_raw]
@@ -179,3 +179,13 @@ def create_invitation(id, user_id, *, cursor=None):
 def is_season_joinable(season_id: int, *, cursor=None):
     status = get_status(season_id, cursor=cursor)
     return status == GameState.PREGAME
+
+
+@wrap_operation()
+def get_current_seasons(*, cursor=None):
+    seasons = get_all(cursor=cursor)
+    # Do not use first() since that will run the
+    # (slow) predicate function for all seasons
+    for season in seasons:
+        if get_status(season.id, cursor=cursor) != GameState.COMPLETE:
+            return [s for s in seasons if s.year == season.year]

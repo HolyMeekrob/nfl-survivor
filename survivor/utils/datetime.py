@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 def try_fromisoformat(dt_str):
@@ -6,3 +6,7 @@ def try_fromisoformat(dt_str):
         return datetime.fromisoformat(dt_str)
     except:
         return None
+
+
+def utcnow():
+    return datetime.utcnow().replace(tzinfo=timezone.utc)

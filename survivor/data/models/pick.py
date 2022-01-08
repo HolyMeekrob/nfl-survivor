@@ -15,9 +15,6 @@ class Pick:
         def get_value(key: str):
             return row[f"{prefix}.{key}"] if prefix else row[key]
 
-        pick = Pick()
-        pick.week_id = get_value("week_id")
-        pick.user_id = get_value("user_id")
-        pick.team_id = get_value("team_id")
+        pick = Pick(get_value("week_id"), get_value("user_id"), get_value("team_id"))
 
         return pick

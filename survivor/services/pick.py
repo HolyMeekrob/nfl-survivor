@@ -20,7 +20,7 @@ def get_pick(user_id: UUID, week_id: int, *, cursor: Cursor = None):
             pick
         WHERE
             user_id = :user_id AND
-            week_id = :week_id
+            week_id = :week_id;
         """,
         {"user_id": user_id, "week_id": week_id},
     )
@@ -28,6 +28,25 @@ def get_pick(user_id: UUID, week_id: int, *, cursor: Cursor = None):
     row = cursor.fetchone()
 
     return Pick.to_pick(row)
+
+
+@wrap_operation()
+def get_picks_for_week(week_id: int, *, cursor: Cursor = None):
+    cursor.execute(
+        """
+        SELECT
+            *
+        FROM
+            pick
+        WHERE
+            week_id = :week_id;
+        """,
+        {"week_id": week_id},
+    )
+
+    rows = cursor.fetchall()
+
+    return [Pick.to_pick(row) for row in rows]
 
 
 @wrap_operation()

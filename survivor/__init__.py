@@ -1,12 +1,24 @@
-from datetime import datetime
 import os
 
-from flask import Flask, redirect, request, url_for
+from flask import Flask, redirect, render_template, request, url_for
 from flask_apscheduler import APScheduler
 from flask_login import LoginManager, current_user
+from pytz import utc
 
-from .data import db, import_csv, User
-from .services import season as season_service, user as user_service
+from survivor.services.pick import get_picks_for_week
+from survivor.utils.datetime import utcnow
+from survivor.utils.email import send_user_email
+from survivor.web.admin.emails import MissingPickEmailModel
+
+from .data import User, db, import_csv
+from .services import (
+    rules as rules_service,
+    scoring as scoring_service,
+    season as season_service,
+    user as user_service,
+    week as week_service,
+    week_timer as week_timer_service,
+)
 from .web import admin, auth, home
 
 
@@ -25,11 +37,74 @@ def __start_scheduled_tasks(app: Flask):
     )
     def update_season():
         with scheduler.app.app_context():
-            year = datetime.utcnow().year
+            year = utcnow().year
             seasons = season_service.get_by_year(year)
 
             if seasons:
                 season_service.update_games(seasons[0].id)
+
+    @scheduler.task(
+        "cron",
+        id="alert_missing_picks",
+        name="Alerts users who have yet to enter a pick for the current week",
+        coalesce=True,
+        max_instances=1,
+        misfire_grace_time=60 * 60,
+        hour=0,
+        timezone=utc,
+    )
+    def alert_missing_picks():
+        with scheduler.app.app_context():
+            cursor = db.get_db().cursor()
+            seasons = season_service.get_current_seasons(cursor=cursor)
+
+            if not seasons:
+                return
+
+            season = seasons[0]
+            week = week_service.get_current_week(season.id, cursor=cursor)
+            rules = rules_service.get(season.id, cursor=cursor)
+
+            deadline = week_timer_service.get_deadline(
+                week.id, rules.pick_cutoff, cursor=cursor
+            )
+            now = utcnow()
+
+            if deadline <= now:
+                return
+
+            participants = {
+                participant.id
+                for participant in season_service.get_participants(
+                    season.id, cursor=cursor
+                )
+            }
+            participants_with_a_pick = {
+                pick.user_id for pick in get_picks_for_week(week.id, cursor=cursor)
+            }
+
+            eliminated_users = {
+                standing[0].user.id
+                for standing in scoring_service.get_standings(season.id, cursor=cursor)
+                if standing[0].is_eliminated()
+            }
+
+            participants_without_a_pick = participants.difference(
+                participants_with_a_pick.union(eliminated_users)
+            )
+
+            for participant in list(participants_without_a_pick)[0:1]:
+                user = user_service.get(participant, cursor=cursor)
+                message = render_template(
+                    "admin/emails/admin/missing_pick/missing_pick.html",
+                    model=MissingPickEmailModel(
+                        user.name, app.config["APP_NAME"], deadline
+                    ),
+                )
+
+                send_user_email(
+                    user, "You have not yet entered a pick for this week", message
+                )
 
     scheduler.init_app(app)
     scheduler.start()

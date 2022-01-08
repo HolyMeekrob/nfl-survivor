@@ -1,8 +1,10 @@
 from flask import current_app
 from mailjet_rest import Client
 
+from survivor.data.models.user import User
 
-def __get_recipient(to):
+
+def __get_recipient(to: str | tuple[str, str]):
     if isinstance(to, str):
         return {"Email": to}
 
@@ -12,7 +14,7 @@ def __get_recipient(to):
     raise TypeError("Email address must either be a string or a tuple")
 
 
-def __get_recipients(to):
+def __get_recipients(to: list[str] | list[tuple[str, str]] | str | tuple[str, str]):
     if current_app.env != "production":
         return [__get_recipient(current_app.config["EMAIL_TO_DEV_OVERRIDE"])]
 
@@ -22,7 +24,11 @@ def __get_recipients(to):
     return [__get_recipient(to)]
 
 
-def send_email(to, subject, message):
+def send_email(
+    to: list[str] | list[tuple[str, str]] | str | tuple[str, str],
+    subject: str,
+    message: str,
+):
     api_key = current_app.config["MAILJET_API_KEY"]
     api_secret = current_app.config["MAILJET_API_SECRET"]
     app_name = current_app.config["APP_NAME"]
@@ -48,5 +54,5 @@ def send_email(to, subject, message):
     return result.status_code == 200
 
 
-def send_user_email(user, subject, message):
+def send_user_email(user: User, subject: str, message: str):
     return send_email((user.email, user.name), subject, message)

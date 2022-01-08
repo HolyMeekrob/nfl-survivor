@@ -1,0 +1,8 @@
+<p>
+	Hi, {{ model.user_name }},
+</p>
+<p>
+	You have not yet entered a pick for the current week in {{ model.league }}.
+	You can do so <a href={{ url_for("home.get_pick", _external=True) }}>here</a>.
+	The deadline to enter your pick is {{ model.deadline.date }}.
+</p>
