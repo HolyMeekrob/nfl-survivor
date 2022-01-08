@@ -9,4 +9,4 @@ def try_fromisoformat(dt_str):
 
 
 def utcnow():
-    return datetime.utcnow().replace(tzinfo=timezone.utc)
+    return datetime.now(timezone.utc)
