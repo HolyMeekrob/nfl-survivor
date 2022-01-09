@@ -12,7 +12,7 @@ def always(result: T) -> Callable[[], T]:
     return lambda: result
 
 
-def complement(f):
+def complement(f: Callable[[T], bool]) -> Callable[[T], bool]:
     return lambda x: not f(x)
 
 

@@ -1,4 +1,4 @@
-from itertools import takewhile
+from itertools import dropwhile, takewhile
 from operator import attrgetter
 from sqlite3 import Cursor
 
@@ -6,6 +6,11 @@ from survivor.data import GameState, Week
 from survivor.utils.db import wrap_operation
 from survivor.utils.list import first
 from . import game as game_service
+
+
+@wrap_operation()
+def __is_complete(week: Week, *, cursor: Cursor = None):
+    return get_status(week, cursor=cursor) == GameState.COMPLETE
 
 
 @wrap_operation(is_write=True)
@@ -66,10 +71,14 @@ def get_current_week(season_id: int, *, cursor: Cursor = None):
 def get_completed_weeks(season_id, *, cursor: Cursor = None):
     weeks = get_by_season(season_id, cursor=cursor)
 
-    def is_complete(week: Week):
-        return get_status(week, cursor=cursor) == GameState.COMPLETE
+    return list(takewhile(__is_complete, weeks))
 
-    return list(takewhile(is_complete, weeks))
+
+@wrap_operation()
+def get_incomplete_weeks(season_id: int, *, cursor: Cursor = None):
+    weeks = get_by_season(season_id, cursor=cursor)
+
+    return list(dropwhile(__is_complete, weeks))
 
 
 @wrap_operation()

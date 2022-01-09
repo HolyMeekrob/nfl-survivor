@@ -1,7 +1,9 @@
 from operator import attrgetter
 from sqlite3 import Cursor
+from typing import Callable
 
-from survivor.api import get_season as fetch_season, get_week as fetch_week
+from survivor.api import get_season as fetch_season
+from survivor.api import get_week as fetch_week
 from survivor.data import (
     GameState,
     InvitationStatus,
@@ -11,17 +13,19 @@ from survivor.data import (
     SeasonType,
     User,
 )
+from survivor.services.types.scoring.standings import Standing
 from survivor.utils.db import wrap_operation
 from survivor.utils.functional import complement
-from survivor.utils.list import flatten
+from survivor.utils.list import first, flatten
 
 from . import game as game_service
 from . import rules as rules_service
+from . import scoring as scoring_service
 from . import week as week_service
 
 
 @wrap_operation()
-def get_all(*, cursor=None):
+def get_all(*, cursor: Cursor = None):
     cursor.execute("SELECT * FROM season ORDER BY year;")
     seasons_raw = cursor.fetchall()
 
@@ -37,7 +41,7 @@ def get_by_year(year: int, *, cursor: Cursor = None):
 
 
 @wrap_operation(is_write=True)
-def create(year, *, cursor=None):
+def create(year, *, cursor: Cursor = None):
     cursor.execute(
         "INSERT INTO season (season_type, year) VALUES(:season_type, :year);",
         {"season_type": SeasonType.REGULAR.value, "year": year},
@@ -56,7 +60,7 @@ def create(year, *, cursor=None):
 
 
 @wrap_operation(is_write=True)
-def update_games(id, *, cursor=None):
+def update_games(id, *, cursor: Cursor = None):
     def update_completed_weeks(year, weeks):
         if not weeks:
             return []
@@ -120,7 +124,7 @@ def get_participants(season_id: int, *, cursor: Cursor = None):
 
 
 @wrap_operation()
-def get_status(season_id: int, *, cursor=None):
+def get_status(season_id: int, *, cursor: Cursor = None):
     weeks = week_service.get_by_season(season_id, cursor=cursor)
     statuses = [week_service.get_status(week, cursor=cursor) for week in weeks]
 
@@ -137,15 +141,16 @@ def get_status(season_id: int, *, cursor=None):
     return GameState.IN_PROGRESS
 
 
-def is_complete(season_id: int):
-    return get_status(season_id) == GameState.COMPLETE
+@wrap_operation()
+def is_complete(season_id: int, *, cursor: Cursor = None):
+    return get_status(season_id, cursor=cursor) == GameState.COMPLETE
 
 
-is_incomplete = complement(is_complete)
+is_incomplete: Callable[[int], bool] = complement(is_complete)
 
 
 @wrap_operation()
-def get_invitations(id, *, cursor=None):
+def get_invitations(id, *, cursor: Cursor = None):
     cursor.execute(
         "SELECT * FROM season_invitation WHERE season_id = :season_id;",
         {"season_id": id},
@@ -160,7 +165,7 @@ def get_invitations(id, *, cursor=None):
 
 
 @wrap_operation(is_write=True)
-def create_invitation(id, user_id, *, cursor=None):
+def create_invitation(id, user_id, *, cursor: Cursor = None):
     cursor.execute(
         """
         INSERT INTO
@@ -176,7 +181,7 @@ def create_invitation(id, user_id, *, cursor=None):
 
 
 @wrap_operation()
-def is_season_joinable(season_id: int, *, cursor=None):
+def is_season_joinable(season_id: int, *, cursor: Cursor = None):
     status = get_status(season_id, cursor=cursor)
     return status == GameState.PREGAME
 
@@ -189,3 +194,36 @@ def get_current_seasons(*, cursor=None):
     for season in seasons:
         if get_status(season.id, cursor=cursor) != GameState.COMPLETE:
             return [s for s in seasons if s.year == season.year]
+
+
+@wrap_operation()
+def get_champions(season_id: int, *, cursor: Cursor = None):
+    def is_first_place(standing: Standing):
+        return standing[1] == 1
+
+    is_not_first_place = complement(is_first_place)
+
+    def has_single_player_in_first_place(standings: list[Standing]):
+        return len(filter(is_first_place), standings) == 1
+
+    def has_fewer_remaining_weeks_than_miss_gap(standings: list[Standing]):
+        miss_gap = len(first(standings, is_not_first_place)[0].misses) - len(
+            standings[0][0].misses
+        )
+        incomplete_week_count = len(
+            week_service.get_incomplete_weeks(season_id, cursor=cursor)
+        )
+
+        return incomplete_week_count < miss_gap
+
+    def is_champion_decided(standings: list[Standing]):
+        return has_single_player_in_first_place(
+            standings
+        ) and has_fewer_remaining_weeks_than_miss_gap(standings)
+
+    standings = scoring_service.get_standings(season_id, cursor=cursor)
+
+    if is_complete(season_id) or is_champion_decided(standings):
+        return [standing[0].user.id for standing in standings if standing[1] == 1]
+
+    return None
