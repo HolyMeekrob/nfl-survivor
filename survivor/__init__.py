@@ -4,11 +4,12 @@ from flask import Flask, redirect, render_template, request, url_for
 from flask_apscheduler import APScheduler
 from flask_login import LoginManager, current_user
 from pytz import utc
+from survivor.api.game import GameState
 
 from survivor.services.pick import get_picks_for_week
 from survivor.utils.datetime import utcnow
 from survivor.utils.email import send_user_email
-from survivor.web.admin.emails import MissingPickEmailModel
+from survivor.web.admin.emails import ChampionCrownedEmailModel, MissingPickEmailModel
 
 from .data import User, db, import_csv
 from .services import (
@@ -37,11 +38,57 @@ def __start_scheduled_tasks(app: Flask):
     )
     def update_season():
         with scheduler.app.app_context():
-            year = utcnow().year
-            seasons = season_service.get_by_year(year)
+            cursor = db.get_db().cursor()
+            seasons = season_service.get_current_seasons(cursor=cursor)
 
-            if seasons:
-                season_service.update_games(seasons[0].id)
+            if not seasons:
+                return
+
+            season = seasons[0]
+            current_week = week_service.get_current_week(season.id, cursor=cursor)
+            initial_week_status = week_service.get_status(
+                current_week.id, cursor=cursor
+            )
+
+            initial_champions = season_service.get_champions(season.id, cursor=cursor)
+            if initial_champions:
+                return
+
+            season_service.update_games(season.id)
+
+            updated_week_status = week_service.get_status(
+                current_week.id, cursor=cursor
+            )
+
+            updated_champions = season_service.get_champions(season.id, cursor=cursor)
+
+            just_completed = (
+                initial_week_status != GameState.COMPLETE
+                and updated_week_status == GameState.COMPLETE
+            )
+
+            just_crowned = updated_champions and not initial_champions
+
+            if not just_completed and not just_crowned:
+                return
+
+            participants = season_service.get_participants(season.id, cursor=cursor)
+            champions = [champion.name for champion in updated_champions]
+
+            for participant in participants:
+                message = render_template(
+                    "admin/emails/admin/missing_pick/missing_pick.html",
+                    model=ChampionCrownedEmailModel(
+                        participant.name, app.config["APP_NAME"], champions
+                    ),
+                )
+
+                subject = (
+                    "A champion has been crowned"
+                    if len(champions) == 1
+                    else "Champions have been crowned"
+                )
+                send_user_email(participant, subject, message)
 
     @scheduler.task(
         "cron",
@@ -96,7 +143,7 @@ def __start_scheduled_tasks(app: Flask):
             for participant in list(participants_without_a_pick)[0:1]:
                 user = user_service.get(participant, cursor=cursor)
                 message = render_template(
-                    "admin/emails/admin/missing_pick/missing_pick.html",
+                    "admin/emails/admin/champion_crowned/champion_crowned.html",
                     model=MissingPickEmailModel(
                         user.name, app.config["APP_NAME"], deadline
                     ),

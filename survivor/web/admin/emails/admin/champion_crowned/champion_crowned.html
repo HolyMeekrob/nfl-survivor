@@ -1,0 +1,18 @@
+<p>
+	Hi, {{ model.user_name }},
+</p>
+<p>
+	{{ model.league }} has come to an end. Congratulations to the
+	{% if length(model.champions) == 1 %}
+	winner
+	{% else %}
+	winners:
+	{% endif %}
+</p>
+<ul>
+	{% for champion in model.champions %}
+	<li>{{ champion }}</li>
+	{% endfor %}
+</ul>
+</p>
+<p>See you next year!</p>

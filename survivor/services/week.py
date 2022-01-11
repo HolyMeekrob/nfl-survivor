@@ -62,7 +62,7 @@ def get_current_week(season_id: int, *, cursor: Cursor = None):
     weeks = get_by_season(season_id, cursor=cursor)
 
     def is_incomplete(week: Week):
-        return get_status(week, cursor=cursor) != GameState.COMPLETE
+        return not __is_complete(week, cursor=cursor)
 
     return first(weeks, is_incomplete)
 

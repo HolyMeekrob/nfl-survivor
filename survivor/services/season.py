@@ -224,6 +224,6 @@ def get_champions(season_id: int, *, cursor: Cursor = None):
     standings = scoring_service.get_standings(season_id, cursor=cursor)
 
     if is_complete(season_id) or is_champion_decided(standings):
-        return [standing[0].user.id for standing in standings if standing[1] == 1]
+        return [standing[0].user for standing in standings if standing[1] == 1]
 
     return None
