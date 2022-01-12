@@ -41,11 +41,11 @@ def difference(xs, ys):
     return list(set(xs).difference(set(ys)))
 
 
-def any(lst, predicate=identity):
+def any(lst: list[T], predicate: Callable[[T], bool] = identity) -> bool:
     return any([predicate(elem) for elem in lst])
 
 
-def all(lst, predicate=identity):
+def all(lst: list[T], predicate: Callable[[T], bool] = identity) -> bool:
     return all_true([predicate(elem) for elem in lst])
 
 

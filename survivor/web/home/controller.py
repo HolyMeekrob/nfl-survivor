@@ -56,7 +56,7 @@ def __respond_to_invitation(service_call: Callable[[int, UUID], bool], season_id
     active_invitations = list(filter(can_be_accepted, invitations))
 
     if not active_invitations:
-        abort(401, "You do not have a pending invitation to the given season")
+        abort(403, "You do not have a pending invitation to the given season")
 
     service_call(season_id, user_id)
 
@@ -75,6 +75,14 @@ def decline_invitation(season_id: int):
 
 @home.get("/season/<int:season_id>")
 def season(season_id: int):
+    seasons = participant_service.get_seasons_for_user(current_user.id)
+
+    is_user_in_season = any(seasons, lambda s: s.id == season_id)
+
+    # TODO: Allow admins
+    if not is_user_in_season:
+        abort(403, "You are not a participant in this season")
+
     season = season_service.get(season_id)
     standings = scoring_service.get_standings(season_id)
     model = SeasonViewModel(season, standings)
