@@ -101,7 +101,7 @@ def get_game(pick: Pick, *, cursor: Cursor = None):
     def has_team(team_id: int) -> Callable[[Game], bool]:
         return lambda game: game.home_team_id == team_id or game.away_team_id == team_id
 
-    games = game_service.get_by_week(pick.week_id, cursor)
+    games = game_service.get_by_week(pick.week_id, cursor=cursor)
 
     return first(games, has_team(pick.team_id))
 

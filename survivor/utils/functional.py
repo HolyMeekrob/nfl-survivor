@@ -9,7 +9,7 @@ def identity(x: Any):
 
 
 def always(result: T) -> Callable[[], T]:
-    return lambda: result
+    return lambda *_: result
 
 
 def complement(f: Callable[[T], bool]) -> Callable[[T], bool]:

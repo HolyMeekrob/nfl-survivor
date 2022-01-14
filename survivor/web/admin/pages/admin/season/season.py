@@ -9,7 +9,7 @@ from wtforms import (
     SelectField,
     ValidationError,
 )
-from wtforms.fields.html5 import DecimalField, EmailField, IntegerField
+from wtforms.fields import DecimalField, EmailField, IntegerField
 from wtforms.widgets import TextInput
 from wtforms.validators import Email, InputRequired, NumberRange
 
