@@ -1,3 +1,5 @@
+from urllib.parse import urljoin, urlparse
+
 from flask import (
     Blueprint,
     current_app,
@@ -8,9 +10,8 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_user, logout_user
+from flask_principal import AnonymousIdentity, Identity, identity_changed
 from itsdangerous import SignatureExpired
-from urllib.parse import urljoin, urlparse
-
 from survivor.data import User
 from survivor.services import user as user_service
 from survivor.utils.email import send_user_email
@@ -21,6 +22,7 @@ from survivor.utils.security import (
     verify_password_hash,
 )
 from survivor.utils.web import public_route
+
 from .emails import ForgotPasswordEmailModel
 from .pages import ForgotForm, LoginForm, RegisterForm, ResetForm
 
@@ -65,6 +67,8 @@ def post_login():
 
     login_user(user, remember=form.remember.data)
 
+    identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
+
     next = request.args.get("next")
 
     return redirect(next) if next and is_safe_url(next) else go_home()
@@ -73,6 +77,10 @@ def post_login():
 @auth.get("/logout")
 def logout():
     logout_user()
+
+    identity_changed.send(
+        current_app._get_current_object(), identity=AnonymousIdentity()
+    )
     return go_home()
 
 
@@ -127,6 +135,8 @@ def post_register():
         user = user_service.get(user_id)
 
     login_user(user)
+
+    identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
 
     next = request.args.get("next")
 

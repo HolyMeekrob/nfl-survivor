@@ -1,4 +1,5 @@
 import uuid
+
 from flask import (
     Blueprint,
     abort,
@@ -10,14 +11,11 @@ from flask import (
     url_for,
 )
 from flask_login import current_user
-
 from survivor.data import Rules, User
-from survivor.services import (
-    rules as rules_service,
-    season as season_service,
-    week as week_service,
-    user as user_service,
-)
+from survivor.services import rules as rules_service
+from survivor.services import season as season_service
+from survivor.services import user as user_service
+from survivor.services import week as week_service
 from survivor.utils.datetime import utcnow
 from survivor.utils.email import send_email
 from survivor.utils.security import get_invitation_code

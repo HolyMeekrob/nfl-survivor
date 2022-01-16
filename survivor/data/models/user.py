@@ -2,6 +2,8 @@ from uuid import UUID
 
 from flask_login import UserMixin
 
+from survivor.data.models.role import Role
+
 
 class User(UserMixin):
     id: UUID
@@ -10,6 +12,7 @@ class User(UserMixin):
     last_name: str
     nickname: str
     password: str
+    role: Role
 
     def __init__(self):
         self.id = None
@@ -18,6 +21,7 @@ class User(UserMixin):
         self.last_name = None
         self.nickname = None
         self.password = None
+        self.role = None
 
     @property
     def name(self) -> str:
@@ -43,6 +47,7 @@ class User(UserMixin):
         user.last_name = get_value("last_name")
         user.nickname = get_value("nickname")
         user.password = get_value("password")
+        user.role = get_value("role")
 
         return user
 
@@ -58,5 +63,6 @@ class User(UserMixin):
         user.last_name = dict.get("last_name", "")
         user.nickname = dict.get("nickname", "")
         user.password = dict.get("password", "")
+        user.role = dict.get("role", Role.USER)
 
         return user

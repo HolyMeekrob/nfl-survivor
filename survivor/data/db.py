@@ -9,7 +9,7 @@ from flask.cli import with_appcontext
 from survivor.utils.list import map_list
 
 from .migrate import migrate
-from .models import GameState, InvitationStatus, WeekTimer
+from .models import GameState, InvitationStatus, Role, WeekTimer
 
 
 def __get_db_location(app):
@@ -92,6 +92,7 @@ def init(app):
     __register_enum(GameState, "GAME_STATE")
     __register_enum(InvitationStatus, "INVITATION_STATUS")
     __register_enum(WeekTimer, "WEEK_TIMER")
+    __register_enum(Role, "ROLE")
 
     app.teardown_appcontext(close_db)
     app.cli.add_command(migrate_db_command)

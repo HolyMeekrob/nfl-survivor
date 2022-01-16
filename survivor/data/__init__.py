@@ -5,6 +5,7 @@ from .models import (
     GameState,
     InvitationStatus,
     Pick,
+    Role,
     Rules,
     Season,
     SeasonInvitation,

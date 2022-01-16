@@ -1,27 +1,23 @@
-from flask import Blueprint, Flask, abort, current_app, flash, render_template
-from flask_login import current_user
 from typing import Callable
 from uuid import UUID
 
+from flask import Blueprint, Flask, abort, current_app, flash, render_template
+from flask_login import current_user
 from survivor.data import GameState, InvitationStatus, Season, Team
-from survivor.services import (
-    game as game_service,
-    pick as pick_service,
-    rules as rules_service,
-    scoring as scoring_service,
-    season as season_service,
-    season_invitation as invitation_service,
-    season_participant as participant_service,
-    team as team_service,
-    week as week_service,
-)
+from survivor.services import game as game_service
+from survivor.services import pick as pick_service
+from survivor.services import rules as rules_service
+from survivor.services import scoring as scoring_service
+from survivor.services import season as season_service
+from survivor.services import season_invitation as invitation_service
+from survivor.services import season_participant as participant_service
+from survivor.services import team as team_service
+from survivor.services import week as week_service
 from survivor.utils.functional import all_true, always, identity
 from survivor.utils.list import filter_list, first, groupby
 from survivor.web.home.pages.home.pick.pick import PickViewModel
 
-from .pages import MyInvitationsViewModel
-from .pages import PickForm, PickViewModel
-from .pages import SeasonViewModel
+from .pages import MyInvitationsViewModel, PickForm, PickViewModel, SeasonViewModel
 
 home = Blueprint("home", __name__, template_folder=".")
 

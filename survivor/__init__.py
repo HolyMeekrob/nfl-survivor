@@ -3,23 +3,23 @@ import os
 from flask import Flask, redirect, render_template, request, url_for
 from flask_apscheduler import APScheduler
 from flask_login import LoginManager, current_user
+from flask_principal import Principal, RoleNeed, UserNeed, identity_loaded
 from pytz import utc
-from survivor.api.game import GameState
 
+from survivor.api.game import GameState
+from survivor.auth.permissions import is_admin
 from survivor.services.pick import get_picks_for_week
 from survivor.utils.datetime import utcnow
 from survivor.utils.email import send_user_email
 from survivor.web.admin.emails import ChampionCrownedEmailModel, MissingPickEmailModel
 
 from .data import User, db, import_csv
-from .services import (
-    rules as rules_service,
-    scoring as scoring_service,
-    season as season_service,
-    user as user_service,
-    week as week_service,
-    week_timer as week_timer_service,
-)
+from .services import rules as rules_service
+from .services import scoring as scoring_service
+from .services import season as season_service
+from .services import user as user_service
+from .services import week as week_service
+from .services import week_timer as week_timer_service
 from .web import admin, auth, home
 
 
@@ -183,6 +183,8 @@ def create_app(test_config=None):
     except OSError:
         pass
 
+    Principal(app)
+
     @app.before_request
     def require_authentication():
         is_static = request.endpoint and request.endpoint.startswith("static")
@@ -195,6 +197,21 @@ def create_app(test_config=None):
             return
         else:
             return redirect(url_for("auth.get_login"))
+
+    @identity_loaded.connect_via(app)
+    def on_identity_loaded(sender, identity):
+        identity.user = current_user
+
+        if hasattr(current_user, "id"):
+            identity.provides.add(UserNeed(current_user.id))
+
+        if hasattr(current_user, "role"):
+            identity.provides.add(RoleNeed(current_user.role))
+
+    @admin.before_request
+    @is_admin.require()
+    def require_admin():
+        pass
 
     # initialize the database
     db.init(app)

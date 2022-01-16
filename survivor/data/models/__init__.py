@@ -1,5 +1,6 @@
 from .game import Game, GameState
 from .pick import Pick
+from .role import Role
 from .rules import Rules
 from .season import Season
 from .season_invitation import SeasonInvitation, InvitationStatus
